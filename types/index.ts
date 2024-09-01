@@ -9,12 +9,17 @@ export type CreateUserParams = {
 	path: string;
 };
 
-export type getUserParams = {
-	_id?: string;
-	credentials?: {
-		email: string;
-		password: string;
-	};
+// export type getUserParams = {
+// 	_id?: string;
+// 	credentials?: {
+// 		email: string;
+// 		password: string;
+// 	};
+// };
+
+export type getUserLoginParams = {
+	email: string;
+	password: string;
 };
 
 export type UpdateUserParams = {

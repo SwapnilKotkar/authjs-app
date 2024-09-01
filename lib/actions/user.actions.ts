@@ -1,6 +1,6 @@
 "use server";
 
-import { CreateUserParams, getUserParams } from "@/types";
+import { CreateUserParams, getUserLoginParams } from "@/types";
 import { connectToDatabase } from "../database";
 import User from "@/models/user.model";
 import { revalidatePath } from "next/cache";
@@ -55,7 +55,7 @@ export async function createUser(user: CreateUserParams) {
 			})
 		);
 	} catch (error: any) {
-		console.log("Error while creating user ---", error);
+		console.log("❌Error while creating user ---", error);
 
 		return JSON.parse(
 			JSON.stringify({
@@ -67,25 +67,65 @@ export async function createUser(user: CreateUserParams) {
 	}
 }
 
-export async function getUser(user: getUserParams) {
+export async function getUserbyId(userId: string) {
 	try {
-		console.log("get user doc999999999999", user);
+		console.log("get userId doc999999999999", userId);
 		await connectToDatabase();
 
-		let findUser;
+		let findUser = await User.findById(userId);
 
-		if (user.credentials) {
-			let encryptedPassword = await hashPassword(user.credentials?.password);
-			console.log("encryptedPassword---", encryptedPassword);
+		if (!findUser) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "User not found",
+					message: "User not found",
+					status: 404,
+				})
+			);
+		}
 
-			findUser = await User.findOne({
-				email: user.credentials?.email,
+		console.log("✅User found---", findUser);
+
+		return JSON.parse(
+			JSON.stringify({
+				data: findUser,
+				message: "User found.",
+				status: 200,
+			})
+		);
+	} catch (error) {
+		console.log("❌Error while getting user ---", error);
+	}
+}
+
+export async function verifyUserLogin(user: getUserLoginParams) {
+	try {
+		await connectToDatabase();
+
+		let encryptedPassword = await hashPassword(user.password);
+		console.log("encryptedPassword---", encryptedPassword);
+
+		let findUser = await User.findOne(
+			{
+				email: user.email,
 				password: encryptedPassword,
-			});
+			},
+			{
+				password: 0,
+				__v: 0,
+			}
+		);
 
-			console.log("findUser---", findUser);
-		} else {
-			findUser = await User.findById(user._id);
+		console.log("✅findUser---", findUser);
+
+		if (!findUser) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "User not found",
+					message: "User not found",
+					status: 404,
+				})
+			);
 		}
 
 		return JSON.parse(
@@ -96,6 +136,7 @@ export async function getUser(user: getUserParams) {
 			})
 		);
 	} catch (error) {
-		console.log("Error while getting user ---", error);
+		console.log("❌Error while verifying user login ---", error);
+		throw new Error("Error while verifying user login");
 	}
 }
