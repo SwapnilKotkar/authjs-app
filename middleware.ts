@@ -1,18 +1,35 @@
-// import { NextRequest, NextResponse } from "next/server";
-// import { auth } from "./auth";
+// import { NextResponse } from "next/server";
+// import type { NextRequest } from "next/server";
+// import { getToken } from "next-auth/jwt";
+// // import { auth } from "./auth";
 
 // export async function middleware(request: NextRequest) {
-// 	const session = await auth();
+// 	// const session = await auth();
 // 	const url = request.nextUrl;
 
-// 	console.log("Session middleware", session);
+// 	// console.log("Session middleware", session);
 // 	console.log("url middleware", url);
 
-// 	if (session && (url.pathname === "/signin" || url.pathname === "/signup")) {
-// 		return NextResponse.redirect(new URL("/", request.url));
+// 	const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || "";
+// 	const NEXTAUTH_SALT = process.env.NEXTAUTH_SALT || ""; // Add default or handle missing salt
+
+// 	if (!NEXTAUTH_SECRET || !NEXTAUTH_SALT) {
+// 		throw new Error("NEXTAUTH_SECRET or NEXTAUTH_SALT is not defined");
 // 	}
 
-// 	if (!session) {
+// 	const token = await getToken({
+// 		req: request,
+// 		secret: NEXTAUTH_SECRET,
+// 		salt: NEXTAUTH_SALT, // Include salt here
+// 	});
+
+// 	console.log("Token in middleware:", token);
+
+// 	if (token) {
+// 		// User is authenticated
+// 		return NextResponse.next();
+// 	} else {
+// 		// Redirect to sign-in if not authenticated
 // 		return NextResponse.redirect(new URL("/signin", request.url));
 // 	}
 
@@ -20,51 +37,58 @@
 // }
 
 // export const config = {
-// 	matcher: ["/signin", "/signup", "/"],
+// 	matcher: [
+// 		"/((?!api|signup|signin|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+// 	],
 // };
 
-// export { auth as middleware } from "@/auth";
-
-// import { NextResponse } from "next/server";
-// import type { NextRequest } from "next/server";
-// import { auth } from "@/auth";
-
-// const protectedRoutes = ["/"];
-
-// export default async function middleware(request: NextRequest) {
-// 	const session = await auth();
-
-// 	const isProtected = protectedRoutes.some((route) =>
-// 		request.nextUrl.pathname.startsWith(route)
-// 	);
-
-// 	if (!session && isProtected) {
-// 		const absoluteURL = new URL("/", request.nextUrl.origin);
-// 		return NextResponse.redirect(absoluteURL.toString());
-// 	}
-
-// 	return NextResponse.next();
-// }
-
-// export const config = {
-// 	matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
-// };
-
+import { auth } from "@/auth";
+// import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { auth } from "./auth";
 
-export async function middleware(request: NextRequest) {
+export default auth(async (request) => {
 	const session = await auth();
 	const url = request.nextUrl;
 
-	console.log("Session middleware", session);
+	// const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || "";
+	// const NEXTAUTH_SALT = process.env.NEXTAUTH_SALT || ""; // Add default or handle missing salt
+
+	// if (!NEXTAUTH_SECRET || !NEXTAUTH_SALT) {
+	// 	throw new Error("NEXTAUTH_SECRET or NEXTAUTH_SALT is not defined");
+	// }
+
+	// const token = await getToken({
+	// 	req: request,
+	// 	secret: NEXTAUTH_SECRET,
+	// 	salt: NEXTAUTH_SALT, // Include salt here
+	// });
+
+	// console.log("Token in middleware:", token);
+
+	console.log("Session middleware^^^^^^^^^^^^^^", session);
 	console.log("url middleware", url);
 
-	return NextResponse.next();
-}
+	if (!session && url.pathname === "/signup") {
+		return NextResponse.next();
+	} else if (!session && url.pathname !== "/signin") {
+		return NextResponse.redirect(new URL(`/signin`, request.url));
+	} else if (
+		session &&
+		session?.user.onboarding === false &&
+		url.pathname !== "/onboarding"
+	) {
+		return NextResponse.redirect(new URL(`/onboarding`, request.url));
+	} else if (session && url.pathname === "/onboarding") {
+		return NextResponse.next();
+	} else if (session && url.pathname !== "/") {
+		return NextResponse.redirect(new URL(`/`, request.url));
+	} else {
+		return NextResponse.next();
+	}
+});
 
 export const config = {
-	matcher: ["/signup", "/"],
-	// matcher: ["/"],
+	matcher: [
+		"/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+	],
 };

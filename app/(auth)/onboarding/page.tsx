@@ -1,5 +1,4 @@
 import Onboarding from "@/components/auth/OnBoarding";
-import SignIn from "@/components/auth/SignIn";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
 import React from "react";
 

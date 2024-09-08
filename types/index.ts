@@ -1,11 +1,11 @@
 // ====== USER PARAMS
 export type CreateUserParams = {
-	firstName: string;
-	lastName: string;
+	// firstName: string;
+	// lastName: string;
 	email: string;
-	username: string;
+	// username: string;
 	password: string;
-	photo?: string;
+	// photo?: string;
 	path: string;
 };
 
@@ -23,9 +23,6 @@ export type getUserLoginParams = {
 };
 
 export type UpdateUserParams = {
-	firstName: string;
-	lastName: string;
 	username: string;
-	password: string;
 	photo: string;
 };

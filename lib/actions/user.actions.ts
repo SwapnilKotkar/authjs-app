@@ -1,10 +1,15 @@
 "use server";
 
-import { CreateUserParams, getUserLoginParams } from "@/types";
+import {
+	CreateUserParams,
+	getUserLoginParams,
+	UpdateUserParams,
+} from "@/types";
 import { connectToDatabase } from "../database";
 import User from "@/models/user.model";
 import { revalidatePath } from "next/cache";
 import CryptoJS from "crypto-js";
+import { auth, unstable_update } from "@/auth";
 
 const salt = process.env.PASSWORD_SECRET!; // Use an environment variable for security
 
@@ -43,7 +48,11 @@ export async function createUser(user: CreateUserParams) {
 
 		user.password = await hashPassword(user.password);
 
-		const newUser = await User.create(user);
+		const newUser = await User.create({
+			email: user.email,
+			passowrd: user.password,
+			onboarding: false,
+		});
 
 		revalidatePath(user.path);
 
@@ -56,6 +65,79 @@ export async function createUser(user: CreateUserParams) {
 		);
 	} catch (error: any) {
 		console.log("❌Error while creating user ---", error);
+
+		return JSON.parse(
+			JSON.stringify({
+				error: error,
+				message: "Something went wrong",
+				status: 500,
+			})
+		);
+	}
+}
+
+// export async function updateUser(user: UpdateUserParams) {}
+
+// Update an existing user
+export async function updateUser(user: UpdateUserParams) {
+	try {
+		console.log("Updating user with data ---", user);
+		await connectToDatabase();
+		const session = await auth();
+		console.log("user_action_session", session);
+
+		const updatedUser = await User.findOneAndUpdate(
+			{ email: session?.user.email }, // Use the session email as the filter
+			{
+				username: user.username,
+				photo: user.photo,
+				$unset: { onboarding: "" },
+			},
+			{ new: true }
+		);
+
+		if (!updatedUser) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "User not found",
+					message: "User not found",
+					status: 404,
+				})
+			);
+		}
+
+		console.log("✅ User updated ---", updatedUser);
+
+		await unstable_update({
+			...session,
+			user: {
+				...session?.user,
+				username: updatedUser.username,
+				onboarding: undefined,
+			},
+		});
+
+		return JSON.parse(
+			JSON.stringify({
+				data: updatedUser,
+				message: "User updated successfully.",
+				status: 200,
+			})
+		);
+	} catch (error: any) {
+		console.log("❌ Error while updating user ---", error);
+
+		if (error.code === 11000 && error.keyPattern && error.keyPattern.username) {
+			// Handle the duplicate username error
+			return JSON.parse(
+				JSON.stringify({
+					error: "Username already exists",
+					message:
+						"The username you are trying to update already exists. Please choose a different username.",
+					status: 400,
+				})
+			);
+		}
 
 		return JSON.parse(
 			JSON.stringify({

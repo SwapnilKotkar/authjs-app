@@ -1,22 +1,23 @@
-import NextAuth, { NextAuthConfig } from "next-auth";
+import NextAuth, { NextAuthConfig, User } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { verifyUserLogin } from "./lib/actions/user.actions";
 import { getUserLoginParams } from "./types";
 import { connectToDatabase } from "./lib/database";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const authOptions: NextAuthConfig = {
 	providers: [
 		Credentials({
 			credentials: {
 				email: {},
 				password: {},
 			},
-			authorize: async (credentials) => {
+			authorize: async (credentials): Promise<User | null> => {
 				if (!credentials?.email || !credentials?.password) {
 					throw new Error("Email and password are required.");
 				}
 
 				try {
+					connectToDatabase();
 					let user = null;
 
 					console.log("creds1234", credentials);
@@ -29,7 +30,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 					console.log("findUser auth********", user);
 
 					if (!user.data) {
-						throw new Error("User not found.");
+						// throw new Error("User not found.");
+						return null;
 					}
 
 					console.log("ooooooooooooooooooooooooooooooooooooooooooooooooooooo");
@@ -39,36 +41,89 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 					throw new Error("User not found.");
 				}
 			},
+			// credentials: {
+			// 	username: { label: "Username", type: "text", placeholder: "jsmith" },
+			// 	email: { label: "Email", type: "email" },
+			// 	password: { label: "Password", type: "password" },
+			// },
+			// async authorize(credentials): Promise<User | null> {
+			// 	const users = [
+			// 		{
+			// 			id: "test-user-1",
+			// 			userName: "test1",
+			// 			name: "Test 1",
+			// 			password: "123456",
+			// 			email: "john@gmail.com",
+			// 		},
+			// 		{
+			// 			id: "test-user-2",
+			// 			userName: "test2",
+			// 			name: "Test 2",
+			// 			password: "pass",
+			// 			email: "test2@donotreply.com",
+			// 		},
+			// 	];
+			// 	const user = users.find(
+			// 		(user) =>
+			// 			user.email === credentials.email &&
+			// 			user.password === credentials.password
+			// 	);
+			// 	return user
+			// 		? { id: user.id, name: user.name, email: user.email }
+			// 		: null;
+			// },
 		}),
 	],
 	callbacks: {
-		jwt({ token, user }) {
-			console.log("jwt_token11111111", token);
-			console.log("jwt_user11111111", user);
+		jwt({ token, user, account, profile, session, trigger }) {
+			console.log(
+				"***************************************************************"
+			);
+			console.log("jwt_token******************", token);
+			console.log("jwt_user******************", user);
+			console.log("jwt_account******************", account);
+			console.log("jwt_profile******************", profile);
+			console.log("jwt_session******************", session);
+			console.log("jwt_trigger******************", trigger);
+
 			if (user) {
 				token._id = user._id?.toString();
 				token.username = user.username;
-				token.onboarding = user.onboarding;
+
+				// Only add onboarding if it exists on the user object
+				if (typeof user.onboarding !== undefined) {
+					token.onboarding = user.onboarding;
+				} else {
+					// If onboarding is undefined or removed, delete it from the token
+					delete token.onboarding;
+				}
 			}
+			console.log("final_token!!!!!!!!!!!!!!!!!!!!!!!", token);
 			return token;
 		},
-		session({ session, token }) {
-			console.log("session_session11111111", session);
-			console.log("session_token11111111", token);
-			// if (session.user) {
-			// 	session.user.id = token.id as string;
-			// }
 
-			if (token) {
-				session.user._id = token._id as string;
-				session.user.username = token.username as string;
+		session({ session, token, newSession, user, trigger }) {
+			console.log(
+				"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+			);
+			console.log("session_session^^^^^^^^^^^^^^^^^^^^", session);
+			console.log("session_token^^^^^^^^^^^^^^^^^^^^", token);
+			console.log("session_newSession^^^^^^^^^^^^^^^^^^^^", newSession);
+			console.log("session_user^^^^^^^^^^^^^^^^^^^^", user);
+			console.log("session_trigger^^^^^^^^^^^^^^^^^^^^", trigger);
+
+			session.user._id = token._id as string;
+			session.user.username = token.username as string;
+
+			// Only add onboarding if it exists in the token
+			if (typeof token.onboarding !== undefined) {
 				session.user.onboarding = token.onboarding as boolean;
+			} else {
+				// If onboarding is not in the token, remove it from the session
+				delete session.user.onboarding;
 			}
 
-			console.log("22222222222222222222222222");
-
 			console.log("session_after11111", session);
-
 			return session;
 		},
 		signIn: async (props) => {
@@ -79,10 +134,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 		},
 	},
 	pages: {
-		signIn: "/signin",
+		// signIn: "/signin",
 		// signOut: "/signin",
 		// error: "/error",
 		// newUser: "/newuser",
 		// verifyRequest: "/verify-request",
 	},
-} satisfies NextAuthConfig);
+	debug: true,
+};
+
+export const { handlers, signIn, signOut, auth, unstable_update } =
+	NextAuth(authOptions);

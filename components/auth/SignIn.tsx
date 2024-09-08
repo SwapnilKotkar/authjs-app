@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Label } from "../ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "../ui/input";
 import {
 	Card,
@@ -26,10 +27,14 @@ import {
 } from "@/components/ui/form";
 import { loginSchema } from "@/lib/validators";
 import { signIn } from "next-auth/react";
-
-// Define the Zod schema
+import { useRouter } from "next/navigation";
+import { ExclamationTriangleIcon, ReloadIcon } from "@radix-ui/react-icons";
 
 const SignIn = () => {
+	const router = useRouter();
+	const [isPending, startTransition] = useTransition();
+	const [signinError, setSigninError] = useState("");
+
 	const form = useForm<z.infer<typeof loginSchema>>({
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
@@ -39,22 +44,48 @@ const SignIn = () => {
 	});
 
 	async function onSubmit(data: z.infer<typeof loginSchema>) {
+		setSigninError("");
 		console.log("signin data", data);
+		startTransition(async () => {
+			try {
+				const result = await signIn("credentials", {
+					redirect: false,
+					email: data.email,
+					password: data.password,
+				});
 
-		try {
-			const result = await signIn("credentials", {
-				redirect: false,
-				email: data.email,
-				password: data.password,
-			});
-		} catch (error) {
-			console.log("signin error", error);
-		}
+				console.log("signin_result", result);
+
+				if (result?.error) {
+					switch (result?.error) {
+						case "CredentialsSignin":
+							setSigninError("Invalid email or password");
+							break;
+						default:
+							setSigninError("An error occurred while signing in");
+							break;
+					}
+
+					return;
+				}
+
+				router.push("/");
+			} catch (error) {
+				console.log("signin error", error);
+			}
+		});
 	}
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="z-10">
+			<form onSubmit={form.handleSubmit(onSubmit)} className="z-10 space-y-3">
+				{signinError && (
+					<Alert variant="destructive">
+						<ExclamationTriangleIcon className="h-4 w-4" />
+						<AlertTitle>Error</AlertTitle>
+						<AlertDescription>{signinError}</AlertDescription>
+					</Alert>
+				)}
 				<Card className="mx-auto max-w-sm">
 					<CardHeader>
 						<CardTitle className="text-2xl">Login</CardTitle>
@@ -69,7 +100,9 @@ const SignIn = () => {
 								name="email"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Email</FormLabel>
+										<FormLabel>
+											Email <span className="text-red-500">*</span>
+										</FormLabel>
 										<FormControl>
 											<Input
 												type="email"
@@ -87,7 +120,9 @@ const SignIn = () => {
 								render={({ field }) => (
 									<FormItem>
 										<div className="flex items-center">
-											<FormLabel>Password</FormLabel>
+											<FormLabel>
+												Password <span className="text-red-500">*</span>
+											</FormLabel>
 											<Link
 												href="/forgotpassword"
 												className="ml-auto inline-block text-sm underline"
@@ -102,10 +137,21 @@ const SignIn = () => {
 									</FormItem>
 								)}
 							/>
-							<Button type="submit" className="w-full">
-								Login
-							</Button>
-							<Button variant="outline" className="w-full">
+							{isPending ? (
+								<Button disabled>
+									<ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+									Please wait
+								</Button>
+							) : (
+								<Button type="submit" className="w-full">
+									Login
+								</Button>
+							)}
+							<Button
+								variant="outline"
+								disabled={isPending ? true : false}
+								className="w-full"
+							>
 								Login with Google
 							</Button>
 						</div>

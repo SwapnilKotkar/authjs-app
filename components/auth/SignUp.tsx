@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -29,49 +29,91 @@ import Link from "next/link";
 import { signUpSchema } from "@/lib/validators";
 import { createUser } from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { ExclamationTriangleIcon, ReloadIcon } from "@radix-ui/react-icons";
+import { signIn } from "next-auth/react";
+// import { useSession } from "next-auth/react";
 
 const SignUp = () => {
 	const router = useRouter();
+	// const { data, status, update } = useSession();
+	const [isPending, startTransition] = useTransition();
+	const [signupError, setSignupError] = useState("");
+
+	// console.log("session_data", data, status, update);
 
 	const form = useForm<z.infer<typeof signUpSchema>>({
 		resolver: zodResolver(signUpSchema),
 		defaultValues: {
-			firstName: "",
-			lastName: "",
-			username: "",
+			// firstName: "",
+			// lastName: "",
+			// username: "",
 			email: "",
 			password: "",
+			confirmPassword: "",
 		},
 	});
 
 	async function onSubmit(data: z.infer<typeof signUpSchema>) {
+		setSignupError("");
 		console.log("user signup data", data);
-		try {
-			const newUser = await createUser({
-				firstName: data.firstName,
-				lastName: data.lastName,
-				username: data.username,
-				email: data.email,
-				password: data.password,
-				path: "/users",
-			});
+		startTransition(async () => {
+			try {
+				const newUser = await createUser({
+					// firstName: data.firstName,
+					// lastName: data.lastName,
+					// username: data.username,
+					email: data.email,
+					password: data.password,
+					path: "/users",
+				});
 
-			console.log("newUser created data---", newUser);
+				console.log("newUser created data---", newUser);
 
-			if (newUser.status !== 201) {
-				alert(newUser.message);
-			} else if (newUser.status === 201) {
-				form.reset();
-				router.push(`/onboarding`);
+				switch (newUser?.status) {
+					case 500:
+						setSignupError("Something went wrong. Please try again!");
+						break;
+					case 409:
+						setSignupError(newUser.message);
+						break;
+					case 201:
+						const result = await signIn("credentials", {
+							redirect: false,
+							email: data.email,
+							password: data.password,
+						});
+
+						console.log("sign_up_then_signin_result", result);
+						if (!newUser.data.onboarding) {
+							alert(newUser.data.onboarding);
+							router.push(`/onboarding`);
+						} else {
+							router.push(`/`);
+						}
+						break;
+					default:
+						setSignupError(
+							"An error occurred while creating user. Please try again!"
+						);
+						break;
+				}
+			} catch (error: any) {
+				console.log("Error while creating user", error);
 			}
-		} catch (error: any) {
-			console.log("Error while creating user", error);
-		}
+		});
 	}
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="z-20">
+			<form onSubmit={form.handleSubmit(onSubmit)} className="z-10 space-y-3">
+				{signupError && (
+					<Alert variant="destructive">
+						<ExclamationTriangleIcon className="h-4 w-4" />
+						<AlertTitle>Error</AlertTitle>
+						<AlertDescription>{signupError}</AlertDescription>
+					</Alert>
+				)}
 				<Card className="mx-auto max-w-sm">
 					<CardHeader>
 						<CardTitle className="text-xl">Sign Up</CardTitle>
@@ -81,7 +123,7 @@ const SignUp = () => {
 					</CardHeader>
 					<CardContent>
 						<div className="grid gap-4">
-							<div className="grid grid-cols-2 gap-4">
+							{/* <div className="grid grid-cols-2 gap-4">
 								<FormField
 									control={form.control}
 									name="firstName"
@@ -108,8 +150,8 @@ const SignUp = () => {
 										</FormItem>
 									)}
 								/>
-							</div>
-							<FormField
+							</div> */}
+							{/* <FormField
 								control={form.control}
 								name="username"
 								render={({ field }) => (
@@ -122,13 +164,15 @@ const SignUp = () => {
 										<FormMessage />
 									</FormItem>
 								)}
-							/>
+							/> */}
 							<FormField
 								control={form.control}
 								name="email"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Email</FormLabel>
+										<FormLabel>
+											Email <span className="text-red-500">*</span>
+										</FormLabel>
 										<FormControl>
 											<Input
 												type="email"
@@ -146,7 +190,9 @@ const SignUp = () => {
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>
+											Password <span className="text-red-500">*</span>
+										</FormLabel>
 										<FormControl>
 											<Input type="password" {...field} />
 										</FormControl>
@@ -154,10 +200,37 @@ const SignUp = () => {
 									</FormItem>
 								)}
 							/>
-							<Button type="submit" className="w-full">
-								Create an account
-							</Button>
-							<Button variant="outline" className="w-full">
+							<FormField
+								control={form.control}
+								name="confirmPassword"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											Confirm Password <span className="text-red-500">*</span>
+										</FormLabel>
+										<FormControl>
+											<Input type="password" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							{isPending ? (
+								<Button disabled>
+									<ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+									Please wait
+								</Button>
+							) : (
+								<Button type="submit" className="w-full">
+									Create an account
+								</Button>
+							)}
+
+							<Button
+								variant="outline"
+								disabled={isPending ? true : false}
+								className="w-full"
+							>
 								Sign up with GitHub
 							</Button>
 						</div>
