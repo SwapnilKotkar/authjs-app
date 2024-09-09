@@ -107,6 +107,9 @@ const Onboarding = () => {
 							case 400:
 								setOnboardingError(updateUserData.message);
 								break;
+							case 409:
+								setOnboardingError(updateUserData.message);
+								break;
 							case 200:
 								alert(1);
 								await update({

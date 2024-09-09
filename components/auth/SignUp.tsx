@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -74,6 +74,8 @@ const SignUp = () => {
 					case 500:
 						setSignupError("Something went wrong. Please try again!");
 						break;
+					case 400:
+						setSignupError(newUser.message);
 					case 409:
 						setSignupError(newUser.message);
 						break;
@@ -104,9 +106,16 @@ const SignUp = () => {
 		});
 	}
 
+	useEffect(() => {
+		console.log("sign_up form errors", form.formState.errors); // Log form errors
+	}, [form.formState.errors]);
+
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="z-10 space-y-3">
+			<form
+				onSubmit={form.handleSubmit(onSubmit)}
+				className="z-10 space-y-3 max-w-sm"
+			>
 				{signupError && (
 					<Alert variant="destructive">
 						<ExclamationTriangleIcon className="h-4 w-4" />

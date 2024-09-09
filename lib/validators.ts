@@ -2,12 +2,12 @@ import * as z from "zod";
 
 export const signUpSchema = z
 	.object({
-		firstName: z
-			.string()
-			.min(3, { message: "First name must be at least 3 characters." }),
-		lastName: z
-			.string()
-			.min(3, { message: "Last name must be at least 3 characters." }),
+		// firstName: z
+		// 	.string()
+		// 	.min(3, { message: "First name must be at least 3 characters." }),
+		// lastName: z
+		// 	.string()
+		// 	.min(3, { message: "Last name must be at least 3 characters." }),
 		// username: z
 		// 	.string()
 		// 	.min(3, { message: "username must be at least 3 characters." }),

@@ -37,20 +37,22 @@ export async function createUser(user: CreateUserParams) {
 		console.log("user data to create mongo doc---", user);
 		await connectToDatabase();
 
-		const isUserExists = await User.findOne({ email: user.email });
+		// const isUserExists = await User.findOne({ email: user.email });
 
-		if (isUserExists) {
-			console.log("user already exists", isUserExists);
-			return JSON.parse(
-				JSON.stringify({ message: "User already exists", status: 409 })
-			);
-		}
+		// if (isUserExists) {
+		// 	console.log("user already exists", isUserExists);
+		// 	return JSON.parse(
+		// 		JSON.stringify({ message: "User already exists", status: 409 })
+		// 	);
+		// }
 
 		user.password = await hashPassword(user.password);
 
+		console.log("user_after____", user);
+
 		const newUser = await User.create({
 			email: user.email,
-			passowrd: user.password,
+			password: user.password,
 			onboarding: false,
 		});
 
@@ -65,6 +67,18 @@ export async function createUser(user: CreateUserParams) {
 		);
 	} catch (error: any) {
 		console.log("❌Error while creating user ---", error);
+
+		if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+			// Handle the duplicate username error
+			return JSON.parse(
+				JSON.stringify({
+					error: "Email already exists",
+					message:
+						"Email already exists. Please login or create account with different email id.",
+					status: 409,
+				})
+			);
+		}
 
 		return JSON.parse(
 			JSON.stringify({
@@ -134,7 +148,7 @@ export async function updateUser(user: UpdateUserParams) {
 					error: "Username already exists",
 					message:
 						"The username you are trying to update already exists. Please choose a different username.",
-					status: 400,
+					status: 409,
 				})
 			);
 		}
