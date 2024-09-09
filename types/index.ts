@@ -25,4 +25,5 @@ export type getUserLoginParams = {
 export type UpdateUserParams = {
 	username: string;
 	photo: string;
+	path: string;
 };

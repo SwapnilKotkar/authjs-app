@@ -1,11 +1,6 @@
 "use client";
 
-import React, {
-	startTransition,
-	useEffect,
-	useState,
-	useTransition,
-} from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -50,8 +45,6 @@ const Onboarding = () => {
 	const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 	const [photoFile, setPhotoFile] = useState<File | null>(null);
 	const [photoError, setPhotoError] = useState("");
-
-	console.log("photoPreview", photoPreview);
 
 	const form = useForm<OnboardingFormData>({
 		resolver: zodResolver(onboardingSchema),
@@ -102,6 +95,7 @@ const Onboarding = () => {
 						const updateUserData = await updateUser({
 							username: data.username,
 							photo: base64Photo,
+							path: "/",
 						});
 
 						console.log("updateUserData created data---", updateUserData);
@@ -122,7 +116,11 @@ const Onboarding = () => {
 										username: updateUserData.username, // Update session with new username
 										photo: updateUserData.photo, // Update session with new photo URL
 									},
+									// trigger: "update",
 								});
+
+								console.log("session_after_onboarding", session);
+
 								router.push(`/`);
 								break;
 							default:

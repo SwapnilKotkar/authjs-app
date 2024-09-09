@@ -75,7 +75,7 @@ const authOptions: NextAuthConfig = {
 		}),
 	],
 	callbacks: {
-		jwt({ token, user, account, profile, session, trigger }) {
+		async jwt({ token, user, account, profile, session, trigger }) {
 			console.log(
 				"***************************************************************"
 			);
@@ -101,8 +101,7 @@ const authOptions: NextAuthConfig = {
 			console.log("final_token!!!!!!!!!!!!!!!!!!!!!!!", token);
 			return token;
 		},
-
-		session({ session, token, newSession, user, trigger }) {
+		async session({ session, token, newSession, user, trigger }) {
 			console.log(
 				"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 			);
@@ -126,7 +125,7 @@ const authOptions: NextAuthConfig = {
 			console.log("session_after11111", session);
 			return session;
 		},
-		signIn: async (props) => {
+		async signIn(props) {
 			// Handle the sign-in process here
 			// Example: return true to allow sign-in or false to deny
 			console.log("signIn_props11111", props);
@@ -140,7 +139,7 @@ const authOptions: NextAuthConfig = {
 		// newUser: "/newuser",
 		// verifyRequest: "/verify-request",
 	},
-	debug: true,
+	// debug: true,
 };
 
 export const { handlers, signIn, signOut, auth, unstable_update } =
