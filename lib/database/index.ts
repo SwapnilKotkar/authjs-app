@@ -1,4 +1,7 @@
-// Updated database.ts
+export const config = {
+  runtime: "nodejs", // Ensure Node.js runtime is used
+};
+
 import mongoose from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI;
