@@ -5,7 +5,7 @@ export type CreateUserParams = {
 	email: string;
 	// username: string;
 	password: string;
-	// photo?: string;
+	// image?: string;
 	path: string;
 };
 
@@ -18,12 +18,20 @@ export type CreateUserParams = {
 // };
 
 export type getUserLoginParams = {
-	usernameOrEmail: string;
+	email: string;
 	password: string;
 };
 
 export type UpdateUserParams = {
 	username: string;
-	photo: string;
+	image: string;
 	path: string;
+};
+
+export type providersLoginParams = {
+	email: string;
+	username: string;
+	providerAccountId: string;
+	providerType: string;
+	image: string;
 };

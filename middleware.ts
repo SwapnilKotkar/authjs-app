@@ -78,7 +78,11 @@ export default auth(async (request) => {
 		url.pathname !== "/onboarding"
 	) {
 		return NextResponse.redirect(new URL(`/onboarding`, request.url));
-	} else if (session && url.pathname === "/onboarding") {
+	} else if (
+		session &&
+		url.pathname === "/onboarding" &&
+		session?.user.onboarding === false
+	) {
 		return NextResponse.next();
 	} else if (session && url.pathname !== "/") {
 		return NextResponse.redirect(new URL(`/`, request.url));
