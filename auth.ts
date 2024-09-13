@@ -8,12 +8,12 @@ const authOptions: NextAuthConfig = {
 	providers: [
 		Credentials({
 			credentials: {
-				email: {},
+				usernameOrEmail: {},
 				password: {},
 			},
 			authorize: async (credentials): Promise<User | null> => {
-				if (!credentials?.email || !credentials?.password) {
-					throw new Error("Email and password are required.");
+				if (!credentials?.usernameOrEmail || !credentials?.password) {
+					throw new Error("Username/email and password are required.");
 				}
 
 				try {
@@ -23,7 +23,7 @@ const authOptions: NextAuthConfig = {
 					console.log("creds1234", credentials);
 
 					user = await verifyUserLogin({
-						email: credentials.email,
+						usernameOrEmail: credentials.usernameOrEmail,
 						password: credentials.password,
 					} as getUserLoginParams);
 
@@ -86,18 +86,29 @@ const authOptions: NextAuthConfig = {
 			console.log("jwt_session******************", session);
 			console.log("jwt_trigger******************", trigger);
 
-			if (user) {
-				token._id = user._id?.toString();
-				token.username = user.username;
+			if (trigger === "signUp" || trigger === "signIn") {
+				if (user) {
+					token._id = user._id?.toString();
+					token.username = user.username;
 
-				// Only add onboarding if it exists on the user object
-				if (typeof user.onboarding !== undefined) {
-					token.onboarding = user.onboarding;
-				} else {
-					// If onboarding is undefined or removed, delete it from the token
-					delete token.onboarding;
+					// Only add onboarding if it exists on the user object
+					if (typeof user.onboarding !== undefined) {
+						token.onboarding = user.onboarding;
+					} else {
+						// If onboarding is undefined or removed, delete it from the token
+						delete token.onboarding;
+					}
 				}
+			} else if (trigger == "update") {
+				token = {
+					...token,
+					username: session.user.username,
+					photo: session.user.photo,
+				};
+
+				delete token.onboarding;
 			}
+
 			console.log("final_token!!!!!!!!!!!!!!!!!!!!!!!", token);
 			return token;
 		},
@@ -122,7 +133,7 @@ const authOptions: NextAuthConfig = {
 				delete session.user.onboarding;
 			}
 
-			console.log("session_after11111", session);
+			// console.log("session_after11111", session);
 			return session;
 		},
 		async signIn(props) {
@@ -142,5 +153,4 @@ const authOptions: NextAuthConfig = {
 	// debug: true,
 };
 
-export const { handlers, signIn, signOut, auth, unstable_update } =
-	NextAuth(authOptions);
+export const { handlers, signIn, signOut, auth } = NextAuth(authOptions);
