@@ -88,7 +88,6 @@ const SignUp = () => {
 
 						console.log("sign_up_then_signin_result", result);
 						if (!newUser.data.onboarding) {
-							alert(newUser.data.onboarding);
 							router.push(`/onboarding`);
 						} else {
 							router.push(`/`);

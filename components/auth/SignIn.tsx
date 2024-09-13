@@ -38,7 +38,7 @@ const SignIn = () => {
 	const form = useForm<z.infer<typeof loginSchema>>({
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
-			email: "",
+			usernameOrEmail: "",
 			password: "",
 		},
 	});
@@ -50,7 +50,7 @@ const SignIn = () => {
 			try {
 				const result = await signIn("credentials", {
 					redirect: false,
-					email: data.email,
+					usernameOrEmail: data.usernameOrEmail,
 					password: data.password,
 				});
 
@@ -97,18 +97,14 @@ const SignIn = () => {
 						<div className="grid gap-4">
 							<FormField
 								control={form.control}
-								name="email"
+								name="usernameOrEmail"
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>
-											Email <span className="text-red-500">*</span>
+											Username or Email <span className="text-red-500">*</span>
 										</FormLabel>
 										<FormControl>
-											<Input
-												type="email"
-												placeholder="m@example.com"
-												{...field}
-											/>
+											<Input type="text" placeholder="" {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>

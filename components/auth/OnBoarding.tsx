@@ -58,7 +58,6 @@ const Onboarding = () => {
 	});
 
 	// async function onSubmit(data: OnboardingFormData) {
-	// 	alert(1);
 	// 	console.log("onboarding_data", data);
 
 	// 	startTransition(async () => {
@@ -111,15 +110,14 @@ const Onboarding = () => {
 								setOnboardingError(updateUserData.message);
 								break;
 							case 200:
-								alert(1);
 								await update({
 									...session,
 									user: {
-										...session?.user,
-										username: updateUserData.username, // Update session with new username
-										photo: updateUserData.photo, // Update session with new photo URL
+										// ...session?.user,
+										username: updateUserData.data.username, // Update session with new username
+										photo: updateUserData.data.photo, // Update session with new photo URL
+										// onboarding: false,
 									},
-									// trigger: "update",
 								});
 
 								console.log("session_after_onboarding", session);
