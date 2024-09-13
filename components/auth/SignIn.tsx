@@ -38,7 +38,7 @@ const SignIn = () => {
 	const form = useForm<z.infer<typeof loginSchema>>({
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
-			usernameOrEmail: "",
+			email: "",
 			password: "",
 		},
 	});
@@ -50,7 +50,7 @@ const SignIn = () => {
 			try {
 				const result = await signIn("credentials", {
 					redirect: false,
-					usernameOrEmail: data.usernameOrEmail,
+					email: data.email,
 					password: data.password,
 				});
 
@@ -60,6 +60,11 @@ const SignIn = () => {
 					switch (result?.error) {
 						case "CredentialsSignin":
 							setSigninError("Invalid email or password");
+							break;
+						case "EmailLinkedWithProvider":
+							setSigninError(
+								"The email you're trying to sign in with is already linked with the following providers such as google, etc. Please sign in using the respective provider."
+							);
 							break;
 						default:
 							setSigninError("An error occurred while signing in");
@@ -78,7 +83,10 @@ const SignIn = () => {
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="z-10 space-y-3">
+			<form
+				onSubmit={form.handleSubmit(onSubmit)}
+				className="z-10 space-y-3 max-w-sm"
+			>
 				{signinError && (
 					<Alert variant="destructive">
 						<ExclamationTriangleIcon className="h-4 w-4" />
@@ -97,14 +105,14 @@ const SignIn = () => {
 						<div className="grid gap-4">
 							<FormField
 								control={form.control}
-								name="usernameOrEmail"
+								name="email"
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>
-											Username or Email <span className="text-red-500">*</span>
+											Email <span className="text-red-500">*</span>
 										</FormLabel>
 										<FormControl>
-											<Input type="text" placeholder="" {...field} />
+											<Input type="email" placeholder="" {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -143,7 +151,7 @@ const SignIn = () => {
 									Login
 								</Button>
 							)}
-							{/* <Button
+							<Button
 								type="button"
 								variant="destructive"
 								disabled={isPending ? true : false}
@@ -151,7 +159,7 @@ const SignIn = () => {
 								className="w-full"
 							>
 								Login with Google
-							</Button> */}
+							</Button>
 						</div>
 						<div className="mt-4 text-center text-sm">
 							Don&apos;t have an account?{" "}

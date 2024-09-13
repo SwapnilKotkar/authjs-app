@@ -53,35 +53,9 @@ const Onboarding = () => {
 			email: "",
 			// firstname: "",
 			// lastname: "",
-			photo: null as any,
+			image: null as any,
 		},
 	});
-
-	// async function onSubmit(data: OnboardingFormData) {
-	// 	console.log("onboarding_data", data);
-
-	// 	startTransition(async () => {
-	// 		try {
-	// 			const updateUserData = await updateUser({
-	// 				//PASS required params here to save username and photo
-	// 			});
-
-	// 			console.log("updateUserData created data---", updateUserData);
-	// 		} catch (error: any) {
-	// 			console.log("Error while onboarding user", error);
-
-	// 		}
-	// 	})
-
-	// 	// toast({
-	// 	// 	title: "Onboarding Data Submitted",
-	// 	// 	description: (
-	// 	// 		<pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-	// 	// 			<code className="text-white">{JSON.stringify(data, null, 2)}</code>
-	// 	// 		</pre>
-	// 	// 	),
-	// 	// });
-	// }
 
 	async function onSubmit(data: OnboardingFormData) {
 		setOnboardingError("");
@@ -93,7 +67,8 @@ const Onboarding = () => {
 						const base64Photo = reader.result as string;
 						const updateUserData = await updateUser({
 							username: data.username,
-							photo: base64Photo,
+							// image: base64Photo,
+							image: "/assets/s-letter.png",
 							path: "/",
 						});
 
@@ -114,8 +89,8 @@ const Onboarding = () => {
 									...session,
 									user: {
 										// ...session?.user,
-										username: updateUserData.data.username, // Update session with new username
-										photo: updateUserData.data.photo, // Update session with new photo URL
+										username: updateUserData.data.username,
+										image: updateUserData.data.image,
 										// onboarding: false,
 									},
 								});
@@ -140,18 +115,6 @@ const Onboarding = () => {
 		});
 	}
 
-	// function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
-	// 	const file = event.target.files?.[0];
-	// 	if (file) {
-	// 		const reader = new FileReader();
-	// 		reader.onloadend = () => {
-	// 			setPhotoPreview(reader.result as string);
-	// 		};
-	// 		reader.readAsDataURL(file);
-	// 	}
-	// 	form.setValue("photo", event.target.files as FileList);
-	// }
-
 	function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
 		const file = event.target.files?.[0];
 		if (file) {
@@ -166,7 +129,7 @@ const Onboarding = () => {
 			} else {
 				setPhotoFile(file);
 				setPhotoPreview(URL.createObjectURL(file)); // Use URL.createObjectURL for preview
-				form.setValue("photo", file ? file.name : "");
+				form.setValue("image", file ? file.name : "");
 			}
 		}
 	}

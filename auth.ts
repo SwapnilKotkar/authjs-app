@@ -1,7 +1,11 @@
 import NextAuth, { NextAuthConfig, User } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-// import Google from "next-auth/providers/google";
-import { verifyUserLogin } from "./lib/actions/user.actions";
+import Google from "next-auth/providers/google";
+import {
+	createGoogleUser,
+	isUserProviderLoggedIn,
+	verifyUserLogin,
+} from "./lib/actions/user.actions";
 import { getUserLoginParams } from "./types";
 import { connectToDatabase } from "./lib/database";
 
@@ -9,22 +13,24 @@ const authOptions: NextAuthConfig = {
 	providers: [
 		Credentials({
 			credentials: {
-				usernameOrEmail: {},
+				email: {},
 				password: {},
 			},
 			authorize: async (credentials): Promise<User | null> => {
-				if (!credentials?.usernameOrEmail || !credentials?.password) {
+				if (!credentials?.email || !credentials?.password) {
 					throw new Error("Username/email and password are required.");
 				}
 
+				console.log("5678****");
+
 				try {
-					connectToDatabase();
+					// connectToDatabase();
 					let user = null;
 
 					console.log("creds1234", credentials);
 
 					user = await verifyUserLogin({
-						usernameOrEmail: credentials.usernameOrEmail,
+						email: credentials.email,
 						password: credentials.password,
 					} as getUserLoginParams);
 
@@ -74,17 +80,17 @@ const authOptions: NextAuthConfig = {
 			// 		: null;
 			// },
 		}),
-		// Google({
-		// 	clientId: process.env.GOOGLE_CLIENT_ID,
-		// 	clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-		// 	authorization: {
-		// 		params: {
-		// 			prompt: "consent",
-		// 			access_type: "offline",
-		// 			response_type: "code",
-		// 		},
-		// 	},
-		// }),
+		Google({
+			clientId: process.env.GOOGLE_CLIENT_ID,
+			clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+			// authorization: {
+			// 	params: {
+			// 		prompt: "consent",
+			// 		access_type: "offline",
+			// 		response_type: "code",
+			// 	},
+			// },
+		}),
 	],
 	callbacks: {
 		async jwt({ token, user, account, profile, session, trigger }) {
@@ -101,13 +107,12 @@ const authOptions: NextAuthConfig = {
 			if (trigger === "signUp" || trigger === "signIn") {
 				if (user) {
 					token._id = user._id?.toString();
-					token.username = user.username;
+					token.username = user.username || user.name;
+					token.image = user.image;
 
-					// Only add onboarding if it exists on the user object
 					if (typeof user.onboarding !== undefined) {
 						token.onboarding = user.onboarding;
 					} else {
-						// If onboarding is undefined or removed, delete it from the token
 						delete token.onboarding;
 					}
 				}
@@ -115,7 +120,7 @@ const authOptions: NextAuthConfig = {
 				token = {
 					...token,
 					username: session.user.username,
-					photo: session.user.photo,
+					image: session.user.image,
 				};
 
 				delete token.onboarding;
@@ -135,7 +140,8 @@ const authOptions: NextAuthConfig = {
 			console.log("session_trigger^^^^^^^^^^^^^^^^^^^^", trigger);
 
 			session.user._id = token._id as string;
-			session.user.username = token.username as string;
+			session.user.username = (token.username || token.name) as string;
+			session.user.image = token.image as string;
 
 			// Only add onboarding if it exists in the token
 			if (typeof token.onboarding !== undefined) {
@@ -157,8 +163,34 @@ const authOptions: NextAuthConfig = {
 			console.log("signIn_credentials", credentials);
 			console.log("signIn_profile", profile);
 
-			if (account?.provider === "google") {
-				// return profile.email_verified && profile.email.endsWith("@example.com")
+			if (account?.provider === "credentials") {
+				console.log("1234****");
+				let res = await isUserProviderLoggedIn({
+					email: credentials?.email,
+				} as { email: string });
+
+				console.log("res_final", res);
+
+				if (res.status !== 200) {
+					return `/signin?error=${res.error}`;
+				}
+				return true;
+			} else if (account?.provider === "google") {
+				if (!user?.email) {
+					return "/signin?error=Email is required for Google login";
+				}
+
+				if (!profile?.email_verified) {
+					return "/signin?error=Email is not verified. Please contact google support.";
+				}
+
+				const newUser = await createGoogleUser({
+					email: user.email,
+					username: profile.name || user.email.split("@")[0],
+					providerAccountId: account.providerAccountId,
+					providerType: account.provider,
+					image: profile.picture,
+				});
 
 				return true;
 			}
@@ -166,13 +198,13 @@ const authOptions: NextAuthConfig = {
 			return true; // or false based on your sign-in logic
 		},
 	},
-	pages: {
-		// signIn: "/signin",
-		// signOut: "/signin",
-		// error: "/error",
-		// newUser: "/newuser",
-		// verifyRequest: "/verify-request",
-	},
+	// pages: {
+	// 	// signIn: "/signin",
+	// 	// signOut: "/signin",
+	// 	// error: "/error",
+	// 	// newUser: "/newuser",
+	// 	// verifyRequest: "/verify-request",
+	// },
 	// debug: true,
 };
 
