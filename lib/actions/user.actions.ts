@@ -9,7 +9,7 @@ import { connectToDatabase } from "../database";
 import User from "@/models/user.model";
 import { revalidatePath } from "next/cache";
 import CryptoJS from "crypto-js";
-import { auth, unstable_update } from "@/auth";
+import { auth } from "@/auth";
 
 const salt = process.env.PASSWORD_SECRET!; // Use an environment variable for security
 
@@ -55,6 +55,8 @@ export async function createUser(user: CreateUserParams) {
 			password: user.password,
 			onboarding: false,
 		});
+
+		console.log("✅ NEW user created", newUser);
 
 		revalidatePath(user.path);
 
@@ -107,8 +109,13 @@ export async function updateUser(user: UpdateUserParams) {
 				photo: user.photo,
 				$unset: { onboarding: "" },
 			},
-			{ new: true }
+			{
+				new: true, // Return the updated document
+				projection: { password: 0 }, // Exclude the password field
+			}
 		);
+
+		console.log(updatedUser);
 
 		if (!updatedUser) {
 			return JSON.parse(
@@ -121,15 +128,6 @@ export async function updateUser(user: UpdateUserParams) {
 		}
 
 		console.log("✅ User updated ---", updatedUser);
-
-		await unstable_update({
-			...session,
-			user: {
-				...session?.user,
-				username: updatedUser.username,
-				onboarding: undefined,
-			},
-		});
 
 		return JSON.parse(
 			JSON.stringify({
@@ -203,8 +201,10 @@ export async function verifyUserLogin(user: getUserLoginParams) {
 
 		let findUser = await User.findOne(
 			{
-				email: user.email,
-				password: encryptedPassword,
+				$or: [
+					{ email: user.usernameOrEmail },
+					{ username: user.usernameOrEmail },
+				],
 			},
 			{
 				password: 0,
