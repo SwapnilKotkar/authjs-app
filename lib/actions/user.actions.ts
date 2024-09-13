@@ -3,6 +3,7 @@
 import {
 	CreateUserParams,
 	getUserLoginParams,
+	providersLoginParams,
 	UpdateUserParams,
 } from "@/types";
 import { connectToDatabase } from "../database";
@@ -11,24 +12,18 @@ import { revalidatePath } from "next/cache";
 import CryptoJS from "crypto-js";
 import { auth } from "@/auth";
 
-const salt = process.env.PASSWORD_SECRET!; // Use an environment variable for security
+const salt = process.env.PASSWORD_SECRET!;
 
-// Encrypt function
 export async function hashPassword(password: string): Promise<string> {
-	// Combine password and salt
 	const combined = password + salt;
-	// Hash the combined string
 	return CryptoJS.SHA256(combined).toString();
 }
 
-// Verify password against hashed password
 export async function verifyPassword(
 	password: string,
 	hashedPassword: string
 ): Promise<boolean> {
-	// Hash the input password
 	const hash = await hashPassword(password);
-	// Compare the hashed input password with the stored hashed password
 	return hash === hashedPassword;
 }
 
@@ -36,15 +31,6 @@ export async function createUser(user: CreateUserParams) {
 	try {
 		console.log("user data to create mongo doc---", user);
 		await connectToDatabase();
-
-		// const isUserExists = await User.findOne({ email: user.email });
-
-		// if (isUserExists) {
-		// 	console.log("user already exists", isUserExists);
-		// 	return JSON.parse(
-		// 		JSON.stringify({ message: "User already exists", status: 409 })
-		// 	);
-		// }
 
 		user.password = await hashPassword(user.password);
 
@@ -71,7 +57,6 @@ export async function createUser(user: CreateUserParams) {
 		console.log("❌Error while creating user ---", error);
 
 		if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
-			// Handle the duplicate username error
 			return JSON.parse(
 				JSON.stringify({
 					error: "Email already exists",
@@ -92,9 +77,6 @@ export async function createUser(user: CreateUserParams) {
 	}
 }
 
-// export async function updateUser(user: UpdateUserParams) {}
-
-// Update an existing user
 export async function updateUser(user: UpdateUserParams) {
 	try {
 		console.log("Updating user with data ---", user);
@@ -106,7 +88,7 @@ export async function updateUser(user: UpdateUserParams) {
 			{ email: session?.user.email }, // Use the session email as the filter
 			{
 				username: user.username,
-				photo: user.photo,
+				image: user.image,
 				$unset: { onboarding: "" },
 			},
 			{
@@ -194,17 +176,12 @@ export async function getUserbyId(userId: string) {
 
 export async function verifyUserLogin(user: getUserLoginParams) {
 	try {
-		await connectToDatabase();
-
 		let encryptedPassword = await hashPassword(user.password);
 		console.log("encryptedPassword---", encryptedPassword);
 
 		let findUser = await User.findOne(
 			{
-				$or: [
-					{ email: user.usernameOrEmail },
-					{ username: user.usernameOrEmail },
-				],
+				$or: [{ email: user.email }, { username: user.email }],
 			},
 			{
 				password: 0,
@@ -234,5 +211,122 @@ export async function verifyUserLogin(user: getUserLoginParams) {
 	} catch (error) {
 		console.log("❌Error while verifying user login ---", error);
 		throw new Error("Error while verifying user login");
+	}
+}
+
+export async function createGoogleUser(user: providersLoginParams) {
+	try {
+		await connectToDatabase();
+
+		console.log("createGoogleUser_params", user);
+
+		const existingUser = await User.findOne({ email: user.email });
+
+		console.log("existingUser_data", existingUser);
+
+		if (existingUser) {
+			console.log(
+				"existingUser.providers?.[user.providerType]",
+				existingUser.providers?.[user.providerType]
+			);
+		}
+
+		if (
+			existingUser &&
+			existingUser.providers?.[user.providerType] === user.providerAccountId
+		) {
+			console.log("here 1");
+
+			const googleUser = await User.findOneAndUpdate(
+				{ email: user.email },
+				{
+					$set: {
+						username: user.username,
+						email: user.email,
+						image: user.image,
+					},
+				},
+				{ new: true }
+			);
+
+			return true;
+		} else {
+			console.log("here 2");
+
+			let existingProviders = existingUser?.providers || {};
+			existingProviders = {
+				...existingProviders,
+				[user.providerType]: user.providerAccountId,
+			};
+
+			const googleUser = await User.findOneAndUpdate(
+				{ email: user.email },
+				{
+					$set: {
+						username: user.username,
+						email: user.email,
+						image: user.image,
+						providers: existingProviders,
+					},
+				},
+				{ upsert: true, new: true }
+			);
+
+			return true;
+		}
+
+		// if(existingUser.providers.google === user.providerAccountId) {
+		// 	await User.updateOne(
+		// 		{ email: user.email },  // Match the user document
+		// 		{ $currentDate: { updatedAt: true } }  // Set the `updatedAt` field to the current date and time
+		// 	  );
+		// 	  return true;
+		// }
+	} catch (error) {
+		console.log("❌❌Error while creating Google user ---", error);
+	}
+}
+
+export async function isUserProviderLoggedIn({ email }: { email: string }) {
+	try {
+		await connectToDatabase();
+
+		const isUserExists = await User.findOne({ email: email });
+
+		if (
+			isUserExists &&
+			isUserExists.providers &&
+			Object.keys(isUserExists.providers).length > 0
+		) {
+			let keys = Object.keys(isUserExists.providers);
+
+			return JSON.parse(
+				JSON.stringify({
+					error: "EmailLinkedWithProvider",
+					// message: `The email you're trying to sign in with is already linked with the following providers as ${keys.join(
+					// 	","
+					// )}. Please sign in using the respective provider.`,
+					status: 409,
+				})
+			);
+		} else {
+			return JSON.parse(
+				JSON.stringify({
+					message: "No linked providers found.",
+					status: 200,
+				})
+			);
+		}
+	} catch (error) {
+		console.log("❌Error while checking user provider login ---", error);
+
+		return JSON.parse(
+			JSON.stringify({
+				error: "ServerError",
+				message:
+					"An error occurred while processing your request. Please try again later.",
+				status: 500,
+			})
+		);
 	}
 }
