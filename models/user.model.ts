@@ -5,8 +5,13 @@ const UserSchema = new Schema(
 		email: { type: String, required: true, unique: true },
 		username: { type: String, unique: true },
 		password: { type: String, required: true },
-		photo: { type: String },
+		image: { type: String },
 		onboarding: { type: Boolean },
+		providers: {
+			type: Object,
+			of: String,
+			default: {},
+		},
 	},
 	{
 		timestamps: true,
