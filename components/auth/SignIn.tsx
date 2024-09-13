@@ -134,7 +134,7 @@ const SignIn = () => {
 								)}
 							/>
 							{isPending ? (
-								<Button disabled>
+								<Button type="button" disabled>
 									<ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
 									Please wait
 								</Button>
@@ -143,13 +143,15 @@ const SignIn = () => {
 									Login
 								</Button>
 							)}
-							<Button
-								variant="outline"
+							{/* <Button
+								type="button"
+								variant="destructive"
 								disabled={isPending ? true : false}
+								onClick={() => signIn("google")}
 								className="w-full"
 							>
 								Login with Google
-							</Button>
+							</Button> */}
 						</div>
 						<div className="mt-4 text-center text-sm">
 							Don&apos;t have an account?{" "}

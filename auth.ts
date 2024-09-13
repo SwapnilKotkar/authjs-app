@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthConfig, User } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+// import Google from "next-auth/providers/google";
 import { verifyUserLogin } from "./lib/actions/user.actions";
 import { getUserLoginParams } from "./types";
 import { connectToDatabase } from "./lib/database";
@@ -73,6 +74,17 @@ const authOptions: NextAuthConfig = {
 			// 		: null;
 			// },
 		}),
+		// Google({
+		// 	clientId: process.env.GOOGLE_CLIENT_ID,
+		// 	clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+		// 	authorization: {
+		// 		params: {
+		// 			prompt: "consent",
+		// 			access_type: "offline",
+		// 			response_type: "code",
+		// 		},
+		// 	},
+		// }),
 	],
 	callbacks: {
 		async jwt({ token, user, account, profile, session, trigger }) {
@@ -136,10 +148,21 @@ const authOptions: NextAuthConfig = {
 			// console.log("session_after11111", session);
 			return session;
 		},
-		async signIn(props) {
+		async signIn({ account, email, user, credentials, profile }) {
 			// Handle the sign-in process here
 			// Example: return true to allow sign-in or false to deny
-			console.log("signIn_props11111", props);
+			console.log("signIn_account", account);
+			console.log("signIn_email", email);
+			console.log("signIn_user", user);
+			console.log("signIn_credentials", credentials);
+			console.log("signIn_profile", profile);
+
+			if (account?.provider === "google") {
+				// return profile.email_verified && profile.email.endsWith("@example.com")
+
+				return true;
+			}
+
 			return true; // or false based on your sign-in logic
 		},
 	},
