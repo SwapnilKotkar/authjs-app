@@ -7,7 +7,6 @@ import {
 	verifyUserLogin,
 } from "./lib/actions/user.actions";
 import { getUserLoginParams } from "./types";
-import { connectToDatabase } from "./lib/database";
 
 const authOptions: NextAuthConfig = {
 	providers: [
@@ -21,10 +20,7 @@ const authOptions: NextAuthConfig = {
 					throw new Error("Username/email and password are required.");
 				}
 
-				console.log("5678****");
-
 				try {
-					// connectToDatabase();
 					let user = null;
 
 					console.log("creds1234", credentials);
@@ -48,37 +44,6 @@ const authOptions: NextAuthConfig = {
 					throw new Error("User not found.");
 				}
 			},
-			// credentials: {
-			// 	username: { label: "Username", type: "text", placeholder: "jsmith" },
-			// 	email: { label: "Email", type: "email" },
-			// 	password: { label: "Password", type: "password" },
-			// },
-			// async authorize(credentials): Promise<User | null> {
-			// 	const users = [
-			// 		{
-			// 			id: "test-user-1",
-			// 			userName: "test1",
-			// 			name: "Test 1",
-			// 			password: "123456",
-			// 			email: "john@gmail.com",
-			// 		},
-			// 		{
-			// 			id: "test-user-2",
-			// 			userName: "test2",
-			// 			name: "Test 2",
-			// 			password: "pass",
-			// 			email: "test2@donotreply.com",
-			// 		},
-			// 	];
-			// 	const user = users.find(
-			// 		(user) =>
-			// 			user.email === credentials.email &&
-			// 			user.password === credentials.password
-			// 	);
-			// 	return user
-			// 		? { id: user.id, name: user.name, email: user.email }
-			// 		: null;
-			// },
 		}),
 		Google({
 			clientId: process.env.GOOGLE_CLIENT_ID,
