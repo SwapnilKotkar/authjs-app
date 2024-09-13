@@ -13,4 +13,11 @@ declare module "next-auth" {
 			onboarding?: boolean;
 		} & DefaultSession["user"];
 	}
+	interface JWT {
+		user: {
+			_id?: string;
+			username?: string;
+			onboarding?: boolean;
+		} & DefaultSession["user"];
+	}
 }

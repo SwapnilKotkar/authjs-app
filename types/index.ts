@@ -18,7 +18,7 @@ export type CreateUserParams = {
 // };
 
 export type getUserLoginParams = {
-	email: string;
+	usernameOrEmail: string;
 	password: string;
 };
 
