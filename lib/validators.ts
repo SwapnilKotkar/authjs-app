@@ -25,10 +25,17 @@ export const signUpSchema = z
 	});
 
 export const loginSchema = z.object({
-	email: z.string().email({ message: "Invalid email address." }),
-	password: z
+	usernameOrEmail: z
 		.string()
-		.min(6, { message: "Password must be at least 6 characters." }),
+		.refine(
+			(val) =>
+				/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(val) ||
+				/^[\w-]{3,}$/.test(val),
+			{
+				message: "Invalid email or username",
+			}
+		),
+	password: z.string().min(6, "Password must be at least 6 characters long"),
 });
 
 export const forgotPasswordSchema = z.object({
