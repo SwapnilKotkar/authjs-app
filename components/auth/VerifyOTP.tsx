@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { MoveLeft } from "lucide-react";
+import { Check, MoveLeft } from "lucide-react";
 import { z } from "zod";
 
 import { Label } from "../ui/label";
@@ -26,39 +26,60 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { useToast } from "@/components/ui/use-toast";
-import { forgotPasswordSchema } from "@/lib/validators";
+import { otpSchema } from "@/lib/validators";
 import Link from "next/link";
-import { createAndSendOTP, createOTP } from "@/lib/actions/user.actions";
+import {
+	createAndSendOTP,
+	createOTP,
+	verifyOTP,
+} from "@/lib/actions/user.actions";
 import { useSession } from "next-auth/react";
 import { ExclamationTriangleIcon, ReloadIcon } from "@radix-ui/react-icons";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-const ForgotPassword = () => {
+const VerifyOTP = () => {
 	const { toast } = useToast();
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const email = searchParams.get("email");
 	const [isPending, startTransition] = useTransition();
 	const [otpError, setOtpError] = useState("");
+	const [otpSuccess, setOtpSuccess] = useState("");
 	const { data: session } = useSession();
 
-	const form = useForm<z.infer<typeof forgotPasswordSchema>>({
-		resolver: zodResolver(forgotPasswordSchema),
+	const form = useForm<z.infer<typeof otpSchema>>({
+		resolver: zodResolver(otpSchema),
 		defaultValues: {
-			email: "",
+			otp: "",
 		},
 	});
 
-	async function onSubmit(data: z.infer<typeof forgotPasswordSchema>) {
-		startTransition(async () => {
-			try {
-				let response = await createAndSendOTP({ email: data.email });
+	async function onSubmit(data: z.infer<typeof otpSchema>) {
+		setOtpError("");
+		setOtpSuccess("");
 
-				console.log("res_ent_otp", response);
+		startTransition(async () => {
+			if (!email) {
+				setOtpError(
+					"Something went wrong. Please go back and generate OTP again."
+				);
+				return;
+			}
+			try {
+				let response = await verifyOTP({ email: email, enteredOTP: data.otp });
+
+				console.log("verify_otp_res", response);
 
 				if (response.status !== 200) {
 					setOtpError(response.message);
+					return;
 				}
 
-				router.push(`/verifyotp?email=${data.email}`);
+				setOtpSuccess("OTP verified successfully");
+
+				setTimeout(() => {
+					router.push(`/signin`);
+				}, 1500);
 			} catch (error) {
 				console.error("�� Error while sending OTP ---", error);
 			}
@@ -67,55 +88,69 @@ const ForgotPassword = () => {
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="z-10">
+			<form
+				onSubmit={form.handleSubmit(onSubmit)}
+				className="z-10 space-y-3 max-w-sm"
+			>
 				{otpError && (
 					<Alert variant="destructive">
 						<ExclamationTriangleIcon className="h-4 w-4" />
-						<AlertTitle>OTP error</AlertTitle>
+						<AlertTitle>Verify error</AlertTitle>
 						<AlertDescription>{otpError}</AlertDescription>
+					</Alert>
+				)}
+				{otpSuccess && (
+					<Alert variant="default" className="border-green-500">
+						<Check className="h-4 w-4" color="green" />
+						<AlertTitle className="text-green-500 font-medium">
+							Verified successfully
+						</AlertTitle>
+						<AlertDescription className="text-green-500">
+							{otpSuccess}
+						</AlertDescription>
 					</Alert>
 				)}
 				<Card className="mx-auto max-w-sm">
 					<CardHeader>
 						<div className="mb-2">
 							<Link
-								href="/signin"
+								href="/forgotpassword"
 								className="flex items-center space-x-2 text-xs text-primary hover:underline"
 							>
 								<MoveLeft className="mr-2 h-4 w-4" /> back
 							</Link>
 						</div>
-						<CardTitle className="text-2xl">Forgot Password</CardTitle>
-						<CardDescription>
-							Enter your email to receive a password reset link.
-						</CardDescription>
+						<CardTitle className="text-2xl">Verify OTP</CardTitle>
+						<CardDescription>Please enter your 6-digit OTP.</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<FormField
 							control={form.control}
-							name="email"
+							name="otp"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Email</FormLabel>
+									<FormLabel>OTP</FormLabel>
 									<FormControl>
-										<Input
-											type="email"
-											placeholder="m@example.com"
-											{...field}
-										/>
+										<Input type="text" placeholder="123456" {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
-						{isPending ? (
+						{!otpSuccess && isPending ? (
 							<Button disabled className="w-full mt-4">
 								<ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
-								Sending OTP...
+								Verifying OTP...
 							</Button>
 						) : (
 							<Button type="submit" className="w-full mt-4">
-								Send OTP
+								Verify OTP
+							</Button>
+						)}
+						{otpSuccess && (
+							<Button disabled className="w-full mt-4">
+								<ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+								Redirecting to signin page...
 							</Button>
 						)}
 					</CardContent>
@@ -125,4 +160,4 @@ const ForgotPassword = () => {
 	);
 };
 
-export default ForgotPassword;
+export default VerifyOTP;

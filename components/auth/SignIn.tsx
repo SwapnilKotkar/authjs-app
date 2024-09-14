@@ -170,7 +170,7 @@ const SignIn = () => {
 										variant="outline"
 										disabled={isPending ? true : false}
 										onClick={() => signIn("google")}
-										className="w-full space-x-2 flex items-center"
+										className="w-full space-x-2 flex items-center border border-foreground/60"
 									>
 										<FaGoogle size={15} color="#DB4437" />
 										<span>Login with Google</span>
@@ -180,7 +180,7 @@ const SignIn = () => {
 										variant="outline"
 										disabled={isPending ? true : false}
 										onClick={() => signIn("github")}
-										className="w-full space-x-2 flex items-center"
+										className="w-full space-x-2 flex items-center border border-foreground/60"
 									>
 										<FaGithub size={15} color="#333" />
 										<span>Login with GitHub</span>
