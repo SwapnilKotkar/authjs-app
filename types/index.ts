@@ -35,3 +35,8 @@ export type providersLoginParams = {
 	providerType: string;
 	image?: string;
 };
+
+export type otpParams = {
+	email: string;
+	enteredOTP?: string;
+};

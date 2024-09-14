@@ -12,6 +12,8 @@ const UserSchema = new Schema(
 			of: String,
 			default: {},
 		},
+		otp: { type: String },
+		otpExpires: { type: Date },
 	},
 	{
 		timestamps: true,
