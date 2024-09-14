@@ -27,17 +27,22 @@ import {
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { signUpSchema } from "@/lib/validators";
-import { createUser } from "@/lib/actions/user.actions";
+import {
+	createEmailVerificationToken,
+	createUser,
+} from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { ExclamationTriangleIcon, ReloadIcon } from "@radix-ui/react-icons";
 import { FaGithub, FaGoogle } from "react-icons/fa";
 import { signIn } from "next-auth/react";
+import { Check } from "lucide-react";
 
 const SignUp = () => {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const [signupError, setSignupError] = useState("");
+	const [signupSuccess, setSignupSuccess] = useState("");
 
 	const form = useForm<z.infer<typeof signUpSchema>>({
 		resolver: zodResolver(signUpSchema),
@@ -71,18 +76,35 @@ const SignUp = () => {
 						setSignupError(newUser.message);
 						break;
 					case 201:
-						const result = await signIn("credentials", {
-							redirect: false,
-							email: data.email,
-							password: data.password,
-						});
+						let response = await createEmailVerificationToken(
+							newUser?.data.email
+						);
 
-						console.log("sign_up_then_signin_result", result);
-						if (!newUser.data.onboarding) {
-							router.push(`/onboarding`);
-						} else {
-							router.push(`/`);
+						console.log("email_verification_token_response", response);
+
+						if (response.status !== 200) {
+							setSignupError(response.message);
+							return;
 						}
+
+						setSignupSuccess(
+							"User signup successful. Please check your mail to verify your email address  and complete your registration."
+						);
+
+						// router.push(`/verifyemail?email=${data.email}`);
+
+						// const result = await signIn("credentials", {
+						// 	redirect: false,
+						// 	email: data.email,
+						// 	password: data.password,
+						// });
+
+						// console.log("sign_up_then_signin_result", result);
+						// if (!newUser.data.onboarding) {
+						// 	router.push(`/onboarding`);
+						// } else {
+						// 	router.push(`/`);
+						// }
 						break;
 					default:
 						setSignupError(
@@ -111,6 +133,17 @@ const SignUp = () => {
 						<ExclamationTriangleIcon className="h-4 w-4" />
 						<AlertTitle>Error</AlertTitle>
 						<AlertDescription>{signupError}</AlertDescription>
+					</Alert>
+				)}
+				{signupSuccess && (
+					<Alert variant="default" className="border-green-500">
+						<Check className="h-4 w-4" color="green" />
+						<AlertTitle className="text-green-500 font-medium">
+							Verified successfully
+						</AlertTitle>
+						<AlertDescription className="text-green-500">
+							{signupSuccess}
+						</AlertDescription>
 					</Alert>
 				)}
 				<Card className="mx-auto max-w-md">
@@ -197,7 +230,7 @@ const SignUp = () => {
 										variant="outline"
 										disabled={isPending ? true : false}
 										onClick={() => signIn("google")}
-										className="w-full space-x-2 flex items-center border border-foreground/60"
+										className="w-full space-x-2 flex items-center border border-foreground/40"
 									>
 										<FaGoogle size={15} color="#DB4437" />
 										<span>Sign up with Google</span>
@@ -207,7 +240,7 @@ const SignUp = () => {
 										variant="outline"
 										disabled={isPending ? true : false}
 										onClick={() => signIn("github")}
-										className="w-full space-x-2 flex items-center border border-foreground/60"
+										className="w-full space-x-2 flex items-center border border-foreground/40"
 									>
 										<FaGithub size={15} color="#333" />
 										<span>Sign up with GitHub</span>

@@ -56,6 +56,7 @@ const ForgotPassword = () => {
 
 				if (response.status !== 200) {
 					setOtpError(response.message);
+					return;
 				}
 
 				router.push(`/verifyotp?email=${data.email}`);

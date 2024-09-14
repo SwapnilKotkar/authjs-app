@@ -28,11 +28,7 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { otpSchema } from "@/lib/validators";
 import Link from "next/link";
-import {
-	createAndSendOTP,
-	createOTP,
-	verifyOTP,
-} from "@/lib/actions/user.actions";
+import { verifyOTP } from "@/lib/actions/user.actions";
 import { useSession } from "next-auth/react";
 import { ExclamationTriangleIcon, ReloadIcon } from "@radix-ui/react-icons";
 import { useRouter, useSearchParams } from "next/navigation";
