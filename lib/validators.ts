@@ -32,3 +32,10 @@ export const onboardingSchema = z.object({
 	email: z.string().email({ message: "Invalid email address." }),
 	image: z.string().optional(), // Change image to a string that will hold the base64 data
 });
+
+export const otpSchema = z.object({
+	otp: z
+		.string()
+		.length(6, "OTP must be exactly 6 digits")
+		.regex(/^\d{6}$/, "OTP must be a 6-digit number"),
+});

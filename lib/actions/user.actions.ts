@@ -3,14 +3,17 @@
 import {
 	CreateUserParams,
 	getUserLoginParams,
+	otpParams,
 	providersLoginParams,
 	UpdateUserParams,
 } from "@/types";
 import { connectToDatabase } from "../database";
 import User from "@/models/user.model";
 import { revalidatePath } from "next/cache";
+import crypto from "crypto";
 import CryptoJS from "crypto-js";
 import { auth } from "@/auth";
+// import { sendOTPEmail, sendPasswordResetEmail } from "../mailer";
 
 const salt = process.env.PASSWORD_SECRET!;
 
@@ -29,12 +32,9 @@ export async function verifyPassword(
 
 export async function createUser(user: CreateUserParams) {
 	try {
-		console.log("user data to create mongo doc---", user);
 		await connectToDatabase();
 
 		user.password = await hashPassword(user.password);
-
-		console.log("user_after____", user);
 
 		const newUser = await User.create({
 			email: user.email,
@@ -89,7 +89,7 @@ export async function updateUser(user: UpdateUserParams) {
 			{
 				username: user.username,
 				image: user.image,
-				$unset: { onboarding: "" },
+				$unset: { onboarding: 1 },
 			},
 			{
 				new: true, // Return the updated document
@@ -320,5 +320,176 @@ export async function isUserProviderLoggedIn({ email }: { email: string }) {
 				status: 500,
 			})
 		);
+	}
+}
+export async function createPasswordResetToken() {
+	try {
+		await connectToDatabase();
+		const session = await auth();
+
+		const resetToken = CryptoJS.lib.WordArray.random(16).toString();
+
+		const hashedToken = CryptoJS.SHA256(resetToken).toString(CryptoJS.enc.Hex);
+
+		await User.findOneAndUpdate(
+			{ email: session?.user.email },
+			{
+				$set: {
+					passwordResetToken: hashedToken,
+					passwordResetExpires: Date.now() + 3600000, // Token expires in 1 hour
+				},
+			}
+		);
+
+		return resetToken;
+	} catch (error) {
+		console.log("❌ Error while creating password reset token ---", error);
+	}
+}
+
+export async function createOTP({ email }: otpParams) {
+	try {
+		await connectToDatabase();
+
+		const otp = crypto.randomInt(100000, 999999).toString(); // Generate a 6-digit OTP
+		const hashedOTP = CryptoJS.SHA256(otp).toString(); // Generate a SHA256 hash
+
+		await User.findOneAndUpdate(
+			{ email: email },
+			{
+				$set: {
+					otp: hashedOTP,
+					otpExpires: Date.now() + 10 * 60 * 1000, // OTP expires in 10 minutes
+				},
+			}
+		);
+
+		return JSON.parse(
+			JSON.stringify({
+				message: "OTP is sent to email address",
+				status: 200,
+			})
+		);
+	} catch (error) {
+		console.log("❌ Error while creating OTP ---", error);
+	}
+}
+
+export async function createAndSendOTP({ email }: otpParams) {
+	try {
+		await connectToDatabase();
+		const existingUser = await User.findOne({ email: email });
+
+		if (!existingUser) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "UserError",
+					message: "Failed. Email address doesn't exists.",
+					status: 404,
+				})
+			);
+		}
+
+		const response = await fetch(`${process.env.NEXTAUTH_URL}/api/sendotp`, {
+			method: "POST",
+			body: JSON.stringify({ email }),
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
+
+		const result = await response.json();
+
+		console.log("otp_sent_res", result);
+
+		if (!result.success) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "OTPSentFailed",
+					message: "Failed to send. Please try to resend OTP.",
+					status: 500,
+				})
+			);
+		}
+
+		return JSON.parse(
+			JSON.stringify({
+				message: `OTP sent succesfully to ${email}. Please check your inbox or spam folder.`,
+				status: 200,
+			})
+		);
+	} catch (error) {
+		console.log("❌ Error while creating and sending OTP ---", error);
+
+		return JSON.parse(
+			JSON.stringify({
+				error: "OTPSentError",
+				message: "Please try again.",
+				status: 500,
+			})
+		);
+	}
+}
+
+export async function verifyOTP({ email, enteredOTP }: otpParams) {
+	try {
+		await connectToDatabase();
+		const existingUser = await User.findOne({ email: email });
+
+		if (!existingUser) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "UserError",
+					message: "Failed. Email address doesn't exists.",
+					status: 404,
+				})
+			);
+		}
+
+		if (
+			!existingUser ||
+			!existingUser.otp ||
+			Date.now() > existingUser.otpExpires
+		) {
+			// throw new Error('OTP is invalid or expired');
+
+			return JSON.parse(
+				JSON.stringify({
+					error: "InvalidorExpiredOTP",
+					message: "OTP is invalid or expired",
+					status: 404,
+				})
+			);
+		}
+
+		if (!enteredOTP) {
+			throw new Error("OTP is missing");
+		}
+
+		const hashedEnteredOTP = CryptoJS.SHA256(enteredOTP).toString();
+
+		if (hashedEnteredOTP !== existingUser.otp) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "InvalidOTP",
+					message: "OTP is incorrect",
+					status: 404,
+				})
+			);
+		}
+
+		await User.findOneAndUpdate(
+			{ email: email },
+			{ $unset: { otp: 1, otpExpires: 1 } }
+		);
+
+		return JSON.parse(
+			JSON.stringify({
+				message: "OTP is verified successfully",
+				status: 200,
+			})
+		);
+	} catch (error) {
+		console.log("❌ Error while verifying OTP ---", error);
 	}
 }
