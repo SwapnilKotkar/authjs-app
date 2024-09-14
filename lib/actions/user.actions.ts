@@ -214,11 +214,11 @@ export async function verifyUserLogin(user: getUserLoginParams) {
 	}
 }
 
-export async function createGoogleUser(user: providersLoginParams) {
+export async function createProviderUser(user: providersLoginParams) {
 	try {
 		await connectToDatabase();
 
-		console.log("createGoogleUser_params", user);
+		console.log("createProviderUser_params", user);
 
 		const existingUser = await User.findOne({ email: user.email });
 
@@ -237,7 +237,7 @@ export async function createGoogleUser(user: providersLoginParams) {
 		) {
 			console.log("here 1");
 
-			const googleUser = await User.findOneAndUpdate(
+			const providerUser = await User.findOneAndUpdate(
 				{ email: user.email },
 				{
 					$set: {
@@ -259,7 +259,7 @@ export async function createGoogleUser(user: providersLoginParams) {
 				[user.providerType]: user.providerAccountId,
 			};
 
-			const googleUser = await User.findOneAndUpdate(
+			const providerUser = await User.findOneAndUpdate(
 				{ email: user.email },
 				{
 					$set: {
@@ -274,16 +274,8 @@ export async function createGoogleUser(user: providersLoginParams) {
 
 			return true;
 		}
-
-		// if(existingUser.providers.google === user.providerAccountId) {
-		// 	await User.updateOne(
-		// 		{ email: user.email },  // Match the user document
-		// 		{ $currentDate: { updatedAt: true } }  // Set the `updatedAt` field to the current date and time
-		// 	  );
-		// 	  return true;
-		// }
 	} catch (error) {
-		console.log("❌❌Error while creating Google user ---", error);
+		console.log("❌❌Error while creating provider-user ---", error);
 	}
 }
 

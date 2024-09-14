@@ -29,6 +29,7 @@ import { loginSchema } from "@/lib/validators";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { ExclamationTriangleIcon, ReloadIcon } from "@radix-ui/react-icons";
+import { FaGithub, FaGoogle } from "react-icons/fa";
 
 const SignIn = () => {
 	const router = useRouter();
@@ -112,7 +113,11 @@ const SignIn = () => {
 											Email <span className="text-red-500">*</span>
 										</FormLabel>
 										<FormControl>
-											<Input type="email" placeholder="" {...field} />
+											<Input
+												type="email"
+												placeholder="max@example.com"
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -151,19 +156,41 @@ const SignIn = () => {
 									Login
 								</Button>
 							)}
-							<Button
-								type="button"
-								variant="destructive"
-								disabled={isPending ? true : false}
-								onClick={() => signIn("google")}
-								className="w-full"
-							>
-								Login with Google
-							</Button>
+							<div className="space-y-3 my-4">
+								<div className="flex items-center space-x-3">
+									<div className="h-[1px] flex-1 bg-foreground/50"></div>
+									<small className="text-muted-foreground text-xs">
+										OR CONTINUE WITH
+									</small>
+									<div className="h-[1px] flex-1 bg-foreground/50"></div>
+								</div>
+								<div className="space-y-3">
+									<Button
+										type="button"
+										variant="outline"
+										disabled={isPending ? true : false}
+										onClick={() => signIn("google")}
+										className="w-full space-x-2 flex items-center"
+									>
+										<FaGoogle size={15} color="#DB4437" />
+										<span>Login with Google</span>
+									</Button>
+									<Button
+										type="button"
+										variant="outline"
+										disabled={isPending ? true : false}
+										onClick={() => signIn("github")}
+										className="w-full space-x-2 flex items-center"
+									>
+										<FaGithub size={15} color="#333" />
+										<span>Login with GitHub</span>
+									</Button>
+								</div>
+							</div>
 						</div>
 						<div className="mt-4 text-center text-sm">
 							Don&apos;t have an account?{" "}
-							<Link href="/signup" className="underline">
+							<Link href="/signup" className="underline text-blue-500">
 								Sign up
 							</Link>
 						</div>

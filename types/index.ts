@@ -33,5 +33,5 @@ export type providersLoginParams = {
 	username: string;
 	providerAccountId: string;
 	providerType: string;
-	image: string;
+	image?: string;
 };

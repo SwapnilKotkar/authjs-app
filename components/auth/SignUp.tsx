@@ -31,23 +31,17 @@ import { createUser } from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { ExclamationTriangleIcon, ReloadIcon } from "@radix-ui/react-icons";
+import { FaGithub, FaGoogle } from "react-icons/fa";
 import { signIn } from "next-auth/react";
-// import { useSession } from "next-auth/react";
 
 const SignUp = () => {
 	const router = useRouter();
-	// const { data, status, update } = useSession();
 	const [isPending, startTransition] = useTransition();
 	const [signupError, setSignupError] = useState("");
-
-	// console.log("session_data", data, status, update);
 
 	const form = useForm<z.infer<typeof signUpSchema>>({
 		resolver: zodResolver(signUpSchema),
 		defaultValues: {
-			// firstName: "",
-			// lastName: "",
-			// username: "",
 			email: "",
 			password: "",
 			confirmPassword: "",
@@ -60,9 +54,6 @@ const SignUp = () => {
 		startTransition(async () => {
 			try {
 				const newUser = await createUser({
-					// firstName: data.firstName,
-					// lastName: data.lastName,
-					// username: data.username,
 					email: data.email,
 					password: data.password,
 					path: "/users",
@@ -113,7 +104,7 @@ const SignUp = () => {
 		<Form {...form}>
 			<form
 				onSubmit={form.handleSubmit(onSubmit)}
-				className="z-10 space-y-3 max-w-sm"
+				className="z-10 space-y-3 max-w-md"
 			>
 				{signupError && (
 					<Alert variant="destructive">
@@ -122,7 +113,7 @@ const SignUp = () => {
 						<AlertDescription>{signupError}</AlertDescription>
 					</Alert>
 				)}
-				<Card className="mx-auto max-w-sm">
+				<Card className="mx-auto max-w-md">
 					<CardHeader>
 						<CardTitle className="text-xl">Sign Up</CardTitle>
 						<CardDescription>
@@ -131,48 +122,6 @@ const SignUp = () => {
 					</CardHeader>
 					<CardContent>
 						<div className="grid gap-4">
-							{/* <div className="grid grid-cols-2 gap-4">
-								<FormField
-									control={form.control}
-									name="firstName"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>First name</FormLabel>
-											<FormControl>
-												<Input placeholder="Max" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="lastName"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Last name</FormLabel>
-											<FormControl>
-												<Input placeholder="Robinson" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							</div> */}
-							{/* <FormField
-								control={form.control}
-								name="username"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Username</FormLabel>
-										<FormControl>
-											<Input placeholder="MaxRob" {...field} />
-										</FormControl>
-										<FormDescription>Username must be unique.</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/> */}
 							<FormField
 								control={form.control}
 								name="email"
@@ -184,7 +133,7 @@ const SignUp = () => {
 										<FormControl>
 											<Input
 												type="email"
-												placeholder="m@example.com"
+												placeholder="max@example.com"
 												{...field}
 											/>
 										</FormControl>
@@ -234,17 +183,41 @@ const SignUp = () => {
 								</Button>
 							)}
 
-							<Button
-								variant="outline"
-								disabled={isPending ? true : false}
-								className="w-full"
-							>
-								Sign up with GitHub
-							</Button>
+							<div className="space-y-3 my-4">
+								<div className="flex items-center space-x-3">
+									<div className="h-[1px] flex-1 bg-foreground/50"></div>
+									<small className="text-muted-foreground text-xs">
+										OR CONTINUE WITH
+									</small>
+									<div className="h-[1px] flex-1 bg-foreground/50"></div>
+								</div>
+								<div className="space-y-3">
+									<Button
+										type="button"
+										variant="outline"
+										disabled={isPending ? true : false}
+										onClick={() => signIn("google")}
+										className="w-full space-x-2 flex items-center"
+									>
+										<FaGoogle size={15} color="#DB4437" />
+										<span>Sign up with Google</span>
+									</Button>
+									<Button
+										type="button"
+										variant="outline"
+										disabled={isPending ? true : false}
+										onClick={() => signIn("github")}
+										className="w-full space-x-2 flex items-center"
+									>
+										<FaGithub size={15} color="#333" />
+										<span>Sign up with GitHub</span>
+									</Button>
+								</div>
+							</div>
 						</div>
 						<div className="mt-4 text-center text-sm">
 							Already have an account?{" "}
-							<Link href="/signin" className="underline">
+							<Link href="/signin" className="underline text-blue-500">
 								Sign in
 							</Link>
 						</div>

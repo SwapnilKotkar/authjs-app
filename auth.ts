@@ -1,8 +1,9 @@
 import NextAuth, { NextAuthConfig, User } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import GitHub from "next-auth/providers/github";
 import {
-	createGoogleUser,
+	createProviderUser,
 	isUserProviderLoggedIn,
 	verifyUserLogin,
 } from "./lib/actions/user.actions";
@@ -55,6 +56,10 @@ const authOptions: NextAuthConfig = {
 			// 		response_type: "code",
 			// 	},
 			// },
+		}),
+		GitHub({
+			clientId: process.env.GITHUB_CLIENT_ID,
+			clientSecret: process.env.GITHUB_CLIENT_SECRET,
 		}),
 	],
 	callbacks: {
@@ -149,7 +154,7 @@ const authOptions: NextAuthConfig = {
 					return "/signin?error=Email is not verified. Please contact google support.";
 				}
 
-				const newUser = await createGoogleUser({
+				const newUser = await createProviderUser({
 					email: user.email,
 					username: profile.name || user.email.split("@")[0],
 					providerAccountId: account.providerAccountId,
@@ -158,9 +163,22 @@ const authOptions: NextAuthConfig = {
 				});
 
 				return true;
+			} else if (account?.provider === "github") {
+				if (!user?.email) {
+					return "/signin?error=Email is required for GitHub login";
+				}
+				const newUser = await createProviderUser({
+					email: user.email,
+					username: user.name || user.email.split("@")[0],
+					providerAccountId: account.providerAccountId,
+					providerType: account.provider,
+					image: user.image || "",
+				});
+
+				return true;
 			}
 
-			return true; // or false based on your sign-in logic
+			return true;
 		},
 	},
 	// pages: {
