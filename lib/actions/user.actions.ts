@@ -2,6 +2,7 @@
 
 import {
 	CreateUserParams,
+	emailVerifyParams,
 	getUserLoginParams,
 	otpParams,
 	providersLoginParams,
@@ -44,7 +45,7 @@ export async function createUser(user: CreateUserParams) {
 
 		console.log("✅ NEW user created", newUser);
 
-		revalidatePath(user.path);
+		// revalidatePath(user.path);
 
 		return JSON.parse(
 			JSON.stringify({
@@ -344,6 +345,121 @@ export async function createPasswordResetToken() {
 		return resetToken;
 	} catch (error) {
 		console.log("❌ Error while creating password reset token ---", error);
+	}
+}
+
+export async function createEmailVerificationToken(email: string) {
+	try {
+		const response = await fetch(
+			`${process.env.NEXTAUTH_URL}/api/verifyemail`,
+			{
+				method: "POST",
+				body: JSON.stringify({ email }),
+				headers: {
+					"Content-Type": "application/json",
+				},
+			}
+		);
+
+		const result = await response.json();
+
+		console.log("ver_token_sent", result);
+
+		if (!result.success) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "EmailSentFailed",
+					message: "Failed to send email. Please try to ssignup again.",
+					status: 500,
+				})
+			);
+		}
+
+		return JSON.parse(
+			JSON.stringify({
+				message: `Verification email sent succesfully to ${email}. Please check your inbox or spam folder.`,
+				status: 200,
+			})
+		);
+	} catch (error) {
+		console.log("❌ Error while sending verification email---", error);
+
+		return JSON.parse(
+			JSON.stringify({
+				error: "EmailSentError",
+				message: "Please try again.",
+				status: 500,
+			})
+		);
+	}
+}
+
+export async function verifyEmailToken({
+	email,
+	emailToken,
+}: emailVerifyParams) {
+	try {
+		await connectToDatabase();
+		const existingUser = await User.findOne({ email: email });
+
+		if (!existingUser) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "UserError",
+					message: "Failed. Email address doesn't exists.",
+					status: 404,
+				})
+			);
+		}
+
+		if (
+			!existingUser ||
+			!existingUser.emailVerifyResetToken ||
+			Date.now() > existingUser.emailVerifyResetExpires
+		) {
+			// throw new Error('OTP is invalid or expired');
+
+			return JSON.parse(
+				JSON.stringify({
+					error: "InvalidorExpiredToken",
+					message: "Token is invalid or expired",
+					status: 404,
+				})
+			);
+		}
+
+		if (!emailToken) {
+			throw new Error("Email token is missing");
+		}
+
+		const hashedEmailToken = CryptoJS.SHA256(emailToken).toString();
+
+		if (hashedEmailToken !== existingUser.emailVerifyResetToken) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "InvalidEmailToken",
+					message: "Email token is incorrect",
+					status: 404,
+				})
+			);
+		}
+
+		await User.findOneAndUpdate(
+			{ email: email },
+			{
+				$set: { isEmailVerified: true },
+				$unset: { emailVerifyResetToken: 1, emailVerifyResetExpires: 1 },
+			}
+		);
+
+		return JSON.parse(
+			JSON.stringify({
+				message: "Email is verified successfully",
+				status: 200,
+			})
+		);
+	} catch (error) {
+		console.log("❌ Error while verifying OTP ---", error);
 	}
 }
 
