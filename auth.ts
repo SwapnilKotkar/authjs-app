@@ -1,86 +1,12 @@
 import NextAuth, { NextAuthConfig, User } from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import Google from "next-auth/providers/google";
-import GitHub from "next-auth/providers/github";
 import {
 	createProviderUser,
 	getUser,
 	isUserProviderLoggedIn,
-	verifyUserLogin,
 } from "./lib/actions/user.actions";
-import { getUserLoginParams } from "./types";
+import authConfig from "./auth.config";
 
 const authOptions: NextAuthConfig = {
-	providers: [
-		Credentials({
-			credentials: {
-				email: {},
-				password: {},
-			},
-			authorize: async (credentials): Promise<User | null> => {
-				if (!credentials?.email || !credentials?.password) {
-					throw new Error("Username/email and password are required.");
-				}
-
-				try {
-					let user = null;
-
-					console.log("creds1234", credentials);
-
-					user = await verifyUserLogin({
-						email: credentials.email,
-						password: credentials.password,
-					} as getUserLoginParams);
-
-					console.log("findUser auth********", user);
-
-					if (!user.data) {
-						// throw new Error("User not found.");
-						return null;
-					}
-
-					console.log("ooooooooooooooooooooooooooooooooooooooooooooooooooooo");
-
-					return user.data;
-				} catch (error) {
-					throw new Error("User not found.");
-				}
-			},
-		}),
-		// {
-		// 	id: "emailonly",
-		// 	name: "email-only",
-		// 	type: "credentials",
-		// 	credentials: {
-		// 		email: {},
-		// 	},
-		// 	authorize: async (credentials): Promise<User | null> => {
-		// 		if (!credentials?.email) {
-		// 			throw new Error("Email is required.");
-		// 		}
-
-		// 		let user = { name: "sam", isEmailVerified: true };
-
-		// 		// return { email: credentials.email };
-		// 		return user;
-		// 	},
-		// },
-		Google({
-			clientId: process.env.GOOGLE_CLIENT_ID,
-			clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-			// authorization: {
-			// 	params: {
-			// 		prompt: "consent",
-			// 		access_type: "offline",
-			// 		response_type: "code",
-			// 	},
-			// },
-		}),
-		GitHub({
-			clientId: process.env.GITHUB_CLIENT_ID,
-			clientSecret: process.env.GITHUB_CLIENT_SECRET,
-		}),
-	],
 	callbacks: {
 		async jwt({ token, user, account, profile, session, trigger }) {
 			console.log(
@@ -216,15 +142,8 @@ const authOptions: NextAuthConfig = {
 			return true;
 		},
 	},
-
-	// pages: {
-	// 	// signIn: "/signin",
-	// 	// signOut: "/signin",
-	// 	// error: "/error",
-	// 	// newUser: "/newuser",
-	// 	// verifyRequest: "/verify-request",
-	// },
-	// debug: true,
+	session: { strategy: "jwt" },
+	...authConfig,
 };
 
 export const { handlers, signIn, signOut, auth } = NextAuth(authOptions);
