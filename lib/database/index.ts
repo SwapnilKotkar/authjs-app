@@ -41,26 +41,57 @@
 // 	return cached.conn;
 // };
 
+// import mongoose from "mongoose";
+
+// const MONGODB_URI = process.env.MONGODB_URI;
+// const DB_NAME = process.env.DB_NAME;
+
+// let cached = (global as any).mongoose || { conn: null, promise: null };
+
+// export const connectToDatabase = async () => {
+// 	if (cached.conn) return cached.conn;
+
+// 	if (!MONGODB_URI) throw new Error("MONGODB_URI is missing");
+
+// 	cached.promise =
+// 		cached.promise ||
+// 		mongoose.connect(MONGODB_URI, {
+// 			dbName: DB_NAME,
+// 			bufferCommands: false,
+// 		});
+
+// 	cached.conn = await cached.promise;
+
+// 	return cached.conn;
+// };
+
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI;
-const DB_NAME = process.env.DB_NAME;
-
-let cached = (global as any).mongoose || { conn: null, promise: null };
+let isConnected = false; // Variable to track the connection status
 
 export const connectToDatabase = async () => {
-	if (cached.conn) return cached.conn;
+	// Set strict query mode for Mongoose to prevent unknown field queries.
+	mongoose.set("strictQuery", true);
 
-	if (!MONGODB_URI) throw new Error("MONGODB_URI is missing");
+	const MONGODB_URI = process.env.MONGODB_URI;
+	const DB_NAME = process.env.DB_NAME;
 
-	cached.promise =
-		cached.promise ||
-		mongoose.connect(MONGODB_URI, {
+	if (!MONGODB_URI) return console.log("Missing MongoDB URL");
+
+	// If the connection is already established, return without creating a new connection.
+	if (isConnected) {
+		console.log("MongoDB connection already established");
+		return;
+	}
+
+	try {
+		await mongoose.connect(MONGODB_URI, {
 			dbName: DB_NAME,
-			bufferCommands: false,
 		});
 
-	cached.conn = await cached.promise;
-
-	return cached.conn;
+		isConnected = true; // Set the connection status to true
+		console.log("MongoDB connected");
+	} catch (error: any) {
+		console.log(`Error connecting to Mongo: ${error.message}`);
+	}
 };
