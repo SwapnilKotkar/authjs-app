@@ -138,10 +138,12 @@ const VerifyOTP = () => {
 								<ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
 								Verifying OTP...
 							</Button>
-						) : (
+						) : !otpSuccess ? (
 							<Button type="submit" className="w-full mt-4">
 								Verify OTP
 							</Button>
+						) : (
+							""
 						)}
 						{otpSuccess && (
 							<Button disabled className="w-full mt-4">

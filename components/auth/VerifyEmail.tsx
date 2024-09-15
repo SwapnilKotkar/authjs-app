@@ -10,7 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
 import { verifyEmailToken } from "@/lib/actions/user.actions";
-import { useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { ExclamationTriangleIcon, ReloadIcon } from "@radix-ui/react-icons";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -50,9 +50,17 @@ const VerifyEmail = () => {
 
 				setEmailSuccess("Email verified successfully");
 
-				// setTimeout(() => {
-				// 	router.push(`/signin`);
-				// }, 1500);
+				router.push("/signin");
+
+				// const result = await signIn("credentials", {
+				// 	redirect: false,
+				// 	email: email,
+				// 	password: "qwerty",
+				// 	token: "blah",
+				// 	// callbackUrl: "http://localhost:3000/api/auth/callback/emailonly",
+				// });
+
+				// console.log("res123", result);
 			} catch (error) {
 				console.error("�� Error while verifying email---", error);
 			}
@@ -72,7 +80,7 @@ const VerifyEmail = () => {
 				<Alert variant="default" className="border-green-500">
 					<Check className="h-4 w-4" color="green" />
 					<AlertTitle className="text-green-500 font-medium">
-						Verified successfully
+						Success
 					</AlertTitle>
 					<AlertDescription className="text-green-500">
 						{emailSuccess}
@@ -96,7 +104,7 @@ const VerifyEmail = () => {
 					{emailSuccess && (
 						<Button disabled className="w-full mt-4">
 							<ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
-							Redirecting to home page...
+							Redirecting to signin page...
 						</Button>
 					)}
 				</CardContent>

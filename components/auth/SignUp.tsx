@@ -55,14 +55,19 @@ const SignUp = () => {
 
 	async function onSubmit(data: z.infer<typeof signUpSchema>) {
 		setSignupError("");
+		setSignupSuccess("");
 		console.log("user signup data", data);
 		startTransition(async () => {
 			try {
-				const newUser = await createUser({
+				const newUserData = await createUser({
 					email: data.email,
 					password: data.password,
 					path: "/users",
 				});
+
+				console.log("newUserData created data---", newUserData);
+
+				let newUser = JSON.parse(JSON.stringify(newUserData));
 
 				console.log("newUser created data---", newUser);
 
@@ -72,8 +77,12 @@ const SignUp = () => {
 						break;
 					case 400:
 						setSignupError(newUser.message);
+						break;
 					case 409:
 						setSignupError(newUser.message);
+						break;
+					case 200:
+						setSignupSuccess(newUser.message);
 						break;
 					case 201:
 						let response = await createEmailVerificationToken(
@@ -91,29 +100,16 @@ const SignUp = () => {
 							"User signup successful. Please check your mail to verify your email address  and complete your registration."
 						);
 
-						// router.push(`/verifyemail?email=${data.email}`);
-
-						// const result = await signIn("credentials", {
-						// 	redirect: false,
-						// 	email: data.email,
-						// 	password: data.password,
-						// });
-
-						// console.log("sign_up_then_signin_result", result);
-						// if (!newUser.data.onboarding) {
-						// 	router.push(`/onboarding`);
-						// } else {
-						// 	router.push(`/`);
-						// }
 						break;
 					default:
+						alert(2);
 						setSignupError(
 							"An error occurred while creating user. Please try again!"
 						);
 						break;
 				}
 			} catch (error: any) {
-				console.log("Error while creating user", error);
+				console.log("Error while creating user123", error);
 			}
 		});
 	}
