@@ -5,6 +5,7 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 import CryptoJS from "crypto-js";
 import User from "@/models/user.model";
+import { otpTemplate } from "@/lib/email_templates/otpTemplate";
 
 export async function POST(request: Request) {
 	const { email } = await request.json();
@@ -47,6 +48,12 @@ export async function POST(request: Request) {
 			from: process.env.EMAIL_USER,
 			to: email,
 			subject: "Next.js Auth.js OTP verification",
+			html: otpTemplate({
+				email: email,
+				otp: otp,
+				backgroundColor: "#000000",
+				titleTextColor: "#fff",
+			}),
 			text: `You requested a password reset. Please use this OTP to verify your email: ${otp}`,
 		};
 

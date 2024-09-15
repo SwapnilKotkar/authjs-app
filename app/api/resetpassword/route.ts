@@ -6,11 +6,12 @@ import crypto from "crypto";
 import CryptoJS from "crypto-js";
 import User from "@/models/user.model";
 import { verifyEmailTemplate } from "@/lib/email_templates/verifyEmailTemplate";
+import { resetPasswordTemplate } from "@/lib/email_templates/newPasswordTemplate";
 
 export async function POST(request: Request) {
 	const { email } = await request.json();
 
-	console.log("emailverify_payload_____", email);
+	console.log("password_reset_payload_____", email);
 
 	const transporter = nodemailer.createTransport({
 		service: process.env.EMAIL_SERVICE,
@@ -23,30 +24,28 @@ export async function POST(request: Request) {
 	try {
 		await connectToDatabase();
 
-		const verifyEmailToken = CryptoJS.lib.WordArray.random(16).toString();
-		const hashedVerifyEmailToken = CryptoJS.SHA256(verifyEmailToken).toString(
-			CryptoJS.enc.Hex
-		);
+		const resetToken = CryptoJS.lib.WordArray.random(16).toString();
+
+		const hashedToken = CryptoJS.SHA256(resetToken).toString(CryptoJS.enc.Hex);
 
 		await User.findOneAndUpdate(
 			{ email: email },
 			{
 				$set: {
-					isEmailVerified: false,
-					emailVerifyResetToken: hashedVerifyEmailToken,
-					emailVerifyResetExpires: Date.now() + 3600000, // Token expires in 1 hour
+					passwordResetToken: hashedToken,
+					passwordResetExpires: Date.now() + 10 * 60 * 1000, // Token expires in 10 minutes
 				},
 			}
 		);
 
-		const emailVerifyUrl = `${process.env.NEXTAUTH_URL}/verifyemail?email=${email}&token=${verifyEmailToken}`;
+		const emailVerifyUrl = `${process.env.NEXTAUTH_URL}/resetpassword?email=${email}&resetpasswordtoken=${resetToken}`;
 		const mailOptions = {
 			from: process.env.EMAIL_USER,
 			to: email,
 			subject: "Email Verification Request",
-			html: verifyEmailTemplate({
+			html: resetPasswordTemplate({
 				email: email,
-				verificationLink: emailVerifyUrl,
+				resetPasswordLink: emailVerifyUrl,
 				backgroundColor: "#000000",
 				titleTextColor: "#fff",
 				linkColor: "#3b82f6",
@@ -57,7 +56,7 @@ export async function POST(request: Request) {
 		await transporter.sendMail(mailOptions);
 		return NextResponse.json({ success: true });
 	} catch (error: any) {
-		console.log("error in /verifyemail", error);
+		console.log("error in /resetpassword", error);
 		return NextResponse.json(
 			{ success: false, error: error.message },
 			{ status: 500 }
