@@ -1,4 +1,4 @@
-export const runtime = "edge"; // optional
+export const runtime = "nodejs"; // optional
 import mongoose from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI;
