@@ -32,3 +32,29 @@ export type emailVerifyParams = {
 	email: string;
 	emailToken?: string;
 };
+
+export type resetPasswordParams = {
+	email: string;
+	newPassword: string;
+};
+
+export type verifyEmailTemplateParams = {
+	email: string;
+	verificationLink: string;
+};
+
+export type resetPasswordTemplateParams = {
+	email: string;
+	resetPasswordLink: string;
+};
+
+export type otpTemplateParams = {
+	email: string;
+	otp: string;
+};
+
+export type templateThemeParams = {
+	backgroundColor: string;
+	titleTextColor: string;
+	linkColor?: string;
+};

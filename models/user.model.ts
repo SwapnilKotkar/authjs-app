@@ -15,6 +15,8 @@ const UserSchema = new Schema(
 		isEmailVerified: { type: Boolean },
 		emailVerifyResetToken: { type: String },
 		emailVerifyResetExpires: { type: String },
+		passwordResetToken: { type: String },
+		passwordResetExpires: { type: String },
 		otp: { type: String },
 		otpExpires: { type: Date },
 	},
