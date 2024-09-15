@@ -6,6 +6,7 @@ import {
 	getUserLoginParams,
 	otpParams,
 	providersLoginParams,
+	resetPasswordParams,
 	UpdateUserParams,
 } from "@/types";
 import { connectToDatabase } from "../database";
@@ -34,6 +35,29 @@ export async function verifyPassword(
 export async function createUser(user: CreateUserParams) {
 	try {
 		await connectToDatabase();
+
+		const isUserExists = await User.findOne({ email: user.email });
+
+		if (isUserExists && !isUserExists.isEmailVerified) {
+			let response = await createEmailVerificationToken(user.email);
+
+			if (response.status !== 200) {
+				return JSON.parse(
+					JSON.stringify({
+						error: "Failed",
+						message: "Something went wrong",
+						status: 500,
+					})
+				);
+			}
+
+			return JSON.stringify({
+				data: isUserExists,
+				message:
+					"User already registered. Email verification link sent your email address, please check your inbox.",
+				status: 200,
+			});
+		}
 
 		user.password = await hashPassword(user.password);
 
@@ -144,14 +168,21 @@ export async function updateUser(user: UpdateUserParams) {
 	}
 }
 
-export async function getUserbyId(userId: string) {
+export async function getUser({
+	userId,
+	email,
+}: {
+	userId?: string;
+	email?: string;
+}) {
 	try {
-		console.log("get userId doc999999999999", userId);
 		await connectToDatabase();
 
-		let findUser = await User.findById(userId);
+		let foundUser = await User.findOne({
+			$or: [{ _id: userId }, { email: email }],
+		});
 
-		if (!findUser) {
+		if (!foundUser) {
 			return JSON.parse(
 				JSON.stringify({
 					error: "User not found",
@@ -161,11 +192,11 @@ export async function getUserbyId(userId: string) {
 			);
 		}
 
-		console.log("✅User found---", findUser);
+		console.log("✅User found---", foundUser);
 
 		return JSON.parse(
 			JSON.stringify({
-				data: findUser,
+				data: foundUser,
 				message: "User found.",
 				status: 200,
 			})
@@ -180,15 +211,10 @@ export async function verifyUserLogin(user: getUserLoginParams) {
 		let encryptedPassword = await hashPassword(user.password);
 		console.log("encryptedPassword---", encryptedPassword);
 
-		let findUser = await User.findOne(
-			{
-				$or: [{ email: user.email }, { username: user.email }],
-			},
-			{
-				password: 0,
-				__v: 0,
-			}
-		);
+		let findUser = await User.findOne({
+			email: user.email,
+			password: encryptedPassword,
+		});
 
 		console.log("✅findUser---", findUser);
 
@@ -245,6 +271,7 @@ export async function createProviderUser(user: providersLoginParams) {
 						username: user.username,
 						email: user.email,
 						image: user.image,
+						isEmailVerified: true,
 					},
 				},
 				{ new: true }
@@ -268,6 +295,7 @@ export async function createProviderUser(user: providersLoginParams) {
 						email: user.email,
 						image: user.image,
 						providers: existingProviders,
+						isEmailVerified: true,
 					},
 				},
 				{ upsert: true, new: true }
@@ -323,28 +351,71 @@ export async function isUserProviderLoggedIn({ email }: { email: string }) {
 		);
 	}
 }
-export async function createPasswordResetToken() {
+export async function createPasswordResetToken(email: string) {
 	try {
 		await connectToDatabase();
-		const session = await auth();
 
-		const resetToken = CryptoJS.lib.WordArray.random(16).toString();
+		const isUserExists = await User.findOne({ email: email });
 
-		const hashedToken = CryptoJS.SHA256(resetToken).toString(CryptoJS.enc.Hex);
+		if (
+			isUserExists &&
+			isUserExists.providers &&
+			Object.keys(isUserExists.providers).length > 0
+		) {
+			let keys = Object.keys(isUserExists.providers);
 
-		await User.findOneAndUpdate(
-			{ email: session?.user.email },
+			return JSON.parse(
+				JSON.stringify({
+					error: "EmailLinkedWithProvider",
+					// message: `The email you're trying to sign in with is already linked with the following providers as ${keys.join(
+					// 	","
+					// )}. Please sign in using the respective provider.`,
+					status: 409,
+				})
+			);
+		}
+
+		const response = await fetch(
+			`${process.env.NEXTAUTH_URL}/api/resetpassword`,
 			{
-				$set: {
-					passwordResetToken: hashedToken,
-					passwordResetExpires: Date.now() + 3600000, // Token expires in 1 hour
+				method: "POST",
+				body: JSON.stringify({ email }),
+				headers: {
+					"Content-Type": "application/json",
 				},
 			}
 		);
 
-		return resetToken;
+		const result = await response.json();
+
+		console.log("reset_token_sent", result);
+
+		if (!result.success) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "ResetPasswordSentFailed",
+					message: "Failed to send reset password email. Please try again.",
+					status: 500,
+				})
+			);
+		}
+
+		return JSON.parse(
+			JSON.stringify({
+				message: `Reset password email sent succesfully to ${email}. Please check your inbox or spam folder.`,
+				status: 200,
+			})
+		);
 	} catch (error) {
-		console.log("❌ Error while creating password reset token ---", error);
+		console.log("❌ Error while sending reset password email---", error);
+
+		return JSON.parse(
+			JSON.stringify({
+				error: "ResetPasswordEmailSentError",
+				message: "Please try again.",
+				status: 500,
+			})
+		);
 	}
 }
 
@@ -391,6 +462,65 @@ export async function createEmailVerificationToken(email: string) {
 				status: 500,
 			})
 		);
+	}
+}
+
+export async function verifyResetPasswordToken({
+	email,
+	newPassword,
+}: resetPasswordParams) {
+	try {
+		await connectToDatabase();
+		const existingUser = await User.findOne({ email: email });
+
+		if (!existingUser) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "UserError",
+					message: "Failed. Email address doesn't exists.",
+					status: 404,
+				})
+			);
+		}
+
+		if (
+			!existingUser ||
+			!existingUser.passwordResetToken ||
+			Date.now() > existingUser.passwordResetExpires
+		) {
+			return JSON.parse(
+				JSON.stringify({
+					error: "Invalidtoken",
+					message: "Token is invalid or expired",
+					status: 404,
+				})
+			);
+		}
+
+		if (!newPassword) {
+			throw new Error("OTP is missing");
+		}
+
+		const hashedPassword = await hashPassword(newPassword);
+
+		await User.findOneAndUpdate(
+			{ email: email },
+			{
+				$set: {
+					password: hashedPassword,
+				},
+				$unset: { passwordResetToken: 1, passwordResetExpires: 1 },
+			}
+		);
+
+		return JSON.parse(
+			JSON.stringify({
+				message: "New password updated successfully",
+				status: 200,
+			})
+		);
+	} catch (error) {
+		console.log("❌ Error while updating new password---", error);
 	}
 }
 
@@ -460,34 +590,6 @@ export async function verifyEmailToken({
 		);
 	} catch (error) {
 		console.log("❌ Error while verifying OTP ---", error);
-	}
-}
-
-export async function createOTP({ email }: otpParams) {
-	try {
-		await connectToDatabase();
-
-		const otp = crypto.randomInt(100000, 999999).toString(); // Generate a 6-digit OTP
-		const hashedOTP = CryptoJS.SHA256(otp).toString(); // Generate a SHA256 hash
-
-		await User.findOneAndUpdate(
-			{ email: email },
-			{
-				$set: {
-					otp: hashedOTP,
-					otpExpires: Date.now() + 10 * 60 * 1000, // OTP expires in 10 minutes
-				},
-			}
-		);
-
-		return JSON.parse(
-			JSON.stringify({
-				message: "OTP is sent to email address",
-				status: 200,
-			})
-		);
-	} catch (error) {
-		console.log("❌ Error while creating OTP ---", error);
 	}
 }
 
