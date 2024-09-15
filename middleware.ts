@@ -8,11 +8,13 @@ export default auth(async (request) => {
 		"/signin",
 		"/signup",
 		"/forgotpassword",
+		"/resetpassword",
 		"/verifyotp",
 		"/verifyemail",
 	];
 	const emailParam = url.searchParams.get("email");
 	const emailToken = url.searchParams.get("token");
+	const resetPasswordToken = url.searchParams.get("resetpasswordtoken");
 
 	console.log("Session middleware^^^^^^^^^^^^^^", session);
 	console.log("url middleware", url);
@@ -29,6 +31,12 @@ export default auth(async (request) => {
 			url.pathname === "/verifyemail" &&
 			(!emailParam || emailParam.trim() === "") &&
 			(!emailToken || emailToken.trim() === "")
+		) {
+			return NextResponse.redirect(new URL(`/signin`, request.url)); // Redirect to signin if email is missing or empty
+		} else if (
+			url.pathname === "/resetpassword" &&
+			(!emailParam || emailParam.trim() === "") &&
+			(!resetPasswordToken || resetPasswordToken.trim() === "")
 		) {
 			return NextResponse.redirect(new URL(`/signin`, request.url)); // Redirect to signin if email is missing or empty
 		}

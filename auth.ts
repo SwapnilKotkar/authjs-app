@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import {
 	createProviderUser,
+	getUser,
 	isUserProviderLoggedIn,
 	verifyUserLogin,
 } from "./lib/actions/user.actions";
@@ -46,6 +47,24 @@ const authOptions: NextAuthConfig = {
 				}
 			},
 		}),
+		// {
+		// 	id: "emailonly",
+		// 	name: "email-only",
+		// 	type: "credentials",
+		// 	credentials: {
+		// 		email: {},
+		// 	},
+		// 	authorize: async (credentials): Promise<User | null> => {
+		// 		if (!credentials?.email) {
+		// 			throw new Error("Email is required.");
+		// 		}
+
+		// 		let user = { name: "sam", isEmailVerified: true };
+
+		// 		// return { email: credentials.email };
+		// 		return user;
+		// 	},
+		// },
 		Google({
 			clientId: process.env.GOOGLE_CLIENT_ID,
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -121,6 +140,13 @@ const authOptions: NextAuthConfig = {
 				delete session.user.onboarding;
 			}
 
+			if (!session.user._id) {
+				const userData = await getUser({ email: session.user.email });
+				// console.log("provider_user_data", userData);
+
+				session.user._id = userData?.data._id.toString();
+			}
+
 			// console.log("session_after11111", session);
 			return session;
 		},
@@ -135,6 +161,11 @@ const authOptions: NextAuthConfig = {
 
 			if (account?.provider === "credentials") {
 				console.log("1234****");
+
+				if (!user.isEmailVerified) {
+					return "/signin?error=EmailNotVerified";
+				}
+
 				let res = await isUserProviderLoggedIn({
 					email: credentials?.email,
 				} as { email: string });
@@ -144,6 +175,10 @@ const authOptions: NextAuthConfig = {
 				if (res.status !== 200) {
 					return `/signin?error=${res.error}`;
 				}
+				return true;
+			} else if (account?.provider === "emailonly") {
+				console.log("inside_emailonly");
+
 				return true;
 			} else if (account?.provider === "google") {
 				if (!user?.email) {
@@ -181,6 +216,7 @@ const authOptions: NextAuthConfig = {
 			return true;
 		},
 	},
+
 	// pages: {
 	// 	// signIn: "/signin",
 	// 	// signOut: "/signin",
