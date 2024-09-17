@@ -3,6 +3,6 @@
 export async function register() {
 	console.log("invoked instrumentation.ts^^^^^^^^^^^^^^^");
 	// connectToDatabase();
-
-	await import("./lib/database");
+	// @ts-ignore
+	await import("./node_modules/mongoose/dist/browser.umd");
 }
