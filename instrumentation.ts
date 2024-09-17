@@ -1,6 +1,8 @@
-import { connectToDatabase } from "./lib/database";
+// import { connectToDatabase } from "./lib/database";
 
-export function register() {
+export async function register() {
 	console.log("invoked instrumentation.ts^^^^^^^^^^^^^^^");
-	connectToDatabase();
+	// connectToDatabase();
+
+	await import("./lib/database");
 }
