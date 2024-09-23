@@ -76,7 +76,7 @@ export default auth(async (request) => {
 });
 
 export const config = {
-	unstable_allowDynamic: ["/lib/database/index.ts", "/models/**"],
+	// unstable_allowDynamic: ["/lib/database/index.ts", "/models/**"],
 	matcher: [
 		"/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
 	],
