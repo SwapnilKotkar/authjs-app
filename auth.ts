@@ -1,7 +1,4 @@
 import NextAuth, { NextAuthConfig, User } from "next-auth";
-import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import { MongoClient, ServerApiVersion } from "mongodb";
-import { connectToDatabase } from "./lib/database"; // Your Mongoose connection logic
 import {
 	createProviderUser,
 	getUser,
@@ -9,18 +6,7 @@ import {
 } from "./lib/actions/user.actions";
 import authConfig from "./auth.config";
 
-const MONGODB_URI = process.env.MONGODB_URI!;
-const clientPromise = MongoClient.connect(MONGODB_URI, {
-	serverApi: {
-		version: ServerApiVersion.v1,
-		strict: true,
-		deprecationErrors: true,
-	},
-});
-
 const authOptions: NextAuthConfig = {
-	// @ts-ignore
-	adapter: MongoDBAdapter(clientPromise),
 	callbacks: {
 		async jwt({ token, user, account, profile, session, trigger }) {
 			console.log(
